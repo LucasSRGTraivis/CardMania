@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Card } from '@/lib/supabase'
-import { Plus, LogOut, Search, Filter, Grid, List } from 'lucide-react'
+import { Plus, LogOut, Search, Filter, Grid, List, Upload, Camera } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CardModal from './CardModal'
 import CardGrid from './CardGrid'
@@ -19,9 +19,12 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [filteredCards, setFilteredCards] = useState<Card[]>(initialCards)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filterRarity, setFilterRarity] = useState<string>('all')
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -48,7 +51,43 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
   const handleAddCard = () => {
     setSelectedCard(null)
+    setSelectedImage(null)
     setIsModalOpen(true)
+  }
+
+  const handleImageUpload = async (file: File) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string)
+      setIsModalOpen(true)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      handleImageUpload(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleImageUpload(file)
+    }
   }
 
   const handleEditCard = (card: Card) => {
@@ -200,7 +239,20 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         </div>
 
         {filteredCards.length === 0 ? (
-          <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
+          <div 
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 ${isDragging ? 'border-forest-500 bg-forest-50' : 'border-cream-200'} border-dashed transition-all`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <div className="text-6xl mb-4">🃏</div>
             <h3 className="text-2xl font-semibold text-forest-900 mb-2">
               {searchTerm || filterRarity !== 'all' ? 'Aucune carte trouvée' : 'Aucune carte dans votre collection'}
@@ -208,16 +260,26 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             <p className="text-forest-600 mb-6">
               {searchTerm || filterRarity !== 'all' 
                 ? 'Essayez de modifier vos filtres de recherche' 
-                : 'Commencez par ajouter votre première carte'}
+                : 'Glissez une image ici ou prenez une photo'}
             </p>
             {!searchTerm && filterRarity === 'all' && (
-              <button
-                onClick={handleAddCard}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                Ajouter ma première carte
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="hidden sm:inline">Choisir une image</span>
+                  <span className="sm:hidden">Photo/Image</span>
+                </button>
+                <button
+                  onClick={handleAddCard}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-cream-50 text-forest-900 font-semibold rounded-xl border-2 border-forest-200 hover:border-forest-400 shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  Ajouter manuellement
+                </button>
+              </div>
             )}
           </div>
         ) : viewMode === 'grid' ? (
@@ -238,7 +300,11 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       {isModalOpen && (
         <CardModal
           card={selectedCard}
-          onClose={() => setIsModalOpen(false)}
+          imageUrl={selectedImage}
+          onClose={() => {
+            setIsModalOpen(false)
+            setSelectedImage(null)
+          }}
           onSave={handleSaveCard}
         />
       )}

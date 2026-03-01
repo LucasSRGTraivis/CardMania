@@ -6,11 +6,12 @@ import { X } from 'lucide-react'
 
 interface CardModalProps {
   card: Card | null
+  imageUrl?: string | null
   onClose: () => void
   onSave: (card: Partial<Card>) => void
 }
 
-export default function CardModal({ card, onClose, onSave }: CardModalProps) {
+export default function CardModal({ card, imageUrl, onClose, onSave }: CardModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     set_name: '',
@@ -34,8 +35,13 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
         image_url: card.image_url || '',
         notes: card.notes || '',
       })
+    } else if (imageUrl) {
+      setFormData(prev => ({
+        ...prev,
+        image_url: imageUrl
+      }))
     }
-  }, [card])
+  }, [card, imageUrl])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,8 +67,20 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
+          {formData.image_url && (
+            <div className="flex justify-center">
+              <div className="w-48 h-64 bg-gradient-to-br from-cream-100 to-forest-50 rounded-xl overflow-hidden shadow-lg">
+                <img
+                  src={formData.image_url}
+                  alt="Aperçu"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
               <label className="block text-sm font-semibold text-forest-900 mb-2">
                 Nom de la carte *
               </label>
@@ -78,7 +96,7 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
 
             <div>
               <label className="block text-sm font-semibold text-forest-900 mb-2">
-                Extension *
+                Série *
               </label>
               <input
                 type="text"
@@ -92,86 +110,15 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
 
             <div>
               <label className="block text-sm font-semibold text-forest-900 mb-2">
-                Numéro de carte
+                Prix d&apos;achat *
               </label>
               <input
                 type="text"
+                required
                 value={formData.card_number}
                 onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-                placeholder="Ex: 11/108"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-forest-900 mb-2">
-                Rareté *
-              </label>
-              <select
-                required
-                value={formData.rarity}
-                onChange={(e) => setFormData({ ...formData, rarity: e.target.value })}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              >
-                {rarities.map(rarity => (
-                  <option key={rarity} value={rarity}>{rarity}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-forest-900 mb-2">
-                État *
-              </label>
-              <select
-                required
-                value={formData.condition}
-                onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              >
-                {conditions.map(condition => (
-                  <option key={condition} value={condition}>{condition}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-forest-900 mb-2">
-                Quantité *
-              </label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-forest-900 mb-2">
-                URL de l&apos;image
-              </label>
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-                placeholder="https://exemple.com/image.jpg"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-forest-900 mb-2">
-                Notes
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
-                placeholder="Ajoutez des notes sur cette carte..."
+                placeholder="Ex: 25€"
               />
             </div>
           </div>
