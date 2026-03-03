@@ -36,14 +36,14 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
       {cards.map((card) => (
         <div
           key={card.id}
           className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
           onClick={() => onPreview(card)}
         >
-          <div className="aspect-[7/10] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden">
+          <div className="aspect-[5/7] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden">
             {card.image_url ? (
               <img
                 src={card.image_url}
@@ -53,27 +53,27 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
             ) : (
               <div className="text-6xl">🃏</div>
             )}
-            <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[11px] font-semibold text-forest-900 shadow-md">
-              ×{card.quantity}
-            </div>
-
             {/* Icônes édition / suppression (haut droite, seulement au survol) */}
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   onEdit(card)
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
                 className="p-1 rounded-full bg-white/90 text-forest-900 hover:bg-forest-100 shadow"
                 title="Modifier"
               >
                 <Edit className="w-3 h-3" />
               </button>
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   onDelete(card.id)
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
                 className="p-1 rounded-full bg-white/90 text-red-700 hover:bg-red-100 shadow"
                 title="Supprimer"
               >
