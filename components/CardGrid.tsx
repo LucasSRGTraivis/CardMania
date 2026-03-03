@@ -44,7 +44,11 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
         >
           <div
             className="aspect-[5/7] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden"
-            onClick={() => onPreview(card)}
+            onClick={(e) => {
+              // Ne déclencher le preview que si on clique directement sur le fond
+              if (e.target !== e.currentTarget) return
+              onPreview(card)
+            }}
           >
             {card.image_url ? (
               <img
