@@ -331,11 +331,11 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           >
             ×
           </button>
-          <div className="max-w-[80vw] max-h-[80vh] rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black">
+          <div className="max-w-[95vw] max-h-[95vh] flex items-center justify-center p-4">
             <img
               src={previewCard.image_url}
               alt={previewCard.name}
-              className="w-full h-full object-contain"
+              className="max-w-full max-h-[90vh] object-contain"
             />
           </div>
         </div>
