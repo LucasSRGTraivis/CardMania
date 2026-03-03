@@ -2,7 +2,6 @@
 
 import { Card } from '@/lib/supabase'
 import { Edit, Trash2 } from 'lucide-react'
-import Image from 'next/image'
 
 interface CardListProps {
   cards: Card[]
@@ -10,16 +9,29 @@ interface CardListProps {
   onDelete: (cardId: string) => void
 }
 
+type CardMeta = {
+  cardType?: 'pokemon' | 'topps'
+  isSigned?: boolean
+  isNumbered?: boolean
+  isSpecial?: boolean
+  numbering?: string
+}
+
 export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
-  const getRarityColor = (rarity: string) => {
-    const colors: Record<string, string> = {
-      'Commune': 'bg-gray-100 text-gray-700',
-      'Peu commune': 'bg-green-100 text-green-700',
-      'Rare': 'bg-blue-100 text-blue-700',
-      'Ultra rare': 'bg-purple-100 text-purple-700',
-      'Secrète': 'bg-yellow-100 text-yellow-700',
+  const parseMeta = (card: Card): CardMeta | null => {
+    try {
+      if (!card.notes) return null
+      return JSON.parse(card.notes) as CardMeta
+    } catch {
+      return null
     }
-    return colors[rarity] || 'bg-gray-100 text-gray-700'
+  }
+
+  const getPrice = (card: Card): number | null => {
+    const raw = (card.card_number || '').toString().replace(',', '.')
+    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
+    if (Number.isNaN(numeric)) return null
+    return numeric
   }
 
   return (
@@ -29,10 +41,8 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
           <thead className="bg-forest-100 border-b border-cream-200">
             <tr>
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Nom</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Extension</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">N°</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Rareté</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">État</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Type</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Prix</th>
               <th className="px-6 py-4 text-center text-sm font-semibold text-forest-900">Quantité</th>
               <th className="px-6 py-4 text-right text-sm font-semibold text-forest-900">Actions</th>
             </tr>
@@ -41,31 +51,36 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
             {cards.map((card) => (
               <tr key={card.id} className="hover:bg-cream-50 transition-colors">
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-16 bg-gradient-to-br from-cream-100 to-forest-50 rounded-lg flex items-center justify-center text-2xl relative overflow-hidden">
-                      {card.image_url ? (
-                        <Image
-                          src={card.image_url}
-                          alt={card.name}
-                          fill
-                          className="object-cover rounded-lg"
-                          sizes="48px"
-                        />
-                      ) : (
-                        '🃏'
-                      )}
-                    </div>
+                  <div className="flex flex-col">
                     <span className="font-medium text-forest-900">{card.name}</span>
+                    <span className="text-xs text-forest-600">{card.set_name}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-forest-600">{card.set_name}</td>
-                <td className="px-6 py-4 text-sm text-forest-600">{card.card_number || '-'}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getRarityColor(card.rarity)}`}>
-                    {card.rarity}
-                  </span>
+                <td className="px-6 py-4 text-sm text-forest-600">
+                  {(() => {
+                    const meta = parseMeta(card)
+                    if (!meta) return '—'
+                    const bits: string[] = []
+                    if (meta.cardType === 'pokemon') bits.push('Pokémon')
+                    if (meta.cardType === 'topps') bits.push('Topps')
+                    if (meta.isSigned) bits.push('Signée')
+                    if (meta.isNumbered) bits.push(meta.numbering ? `Numérotée ${meta.numbering}` : 'Numérotée')
+                    if (meta.isSpecial) bits.push('Spéciale')
+                    if (bits.length === 0) return '—'
+                    return bits.join(' • ')
+                  })()}
                 </td>
-                <td className="px-6 py-4 text-sm text-forest-600">{card.condition}</td>
+                <td className="px-6 py-4 text-sm text-forest-600">
+                  {(() => {
+                    const price = getPrice(card)
+                    if (price == null) return '—'
+                    return price.toLocaleString('fr-FR', {
+                      style: 'currency',
+                      currency: 'EUR',
+                      maximumFractionDigits: 2,
+                    })
+                  })()}
+                </td>
                 <td className="px-6 py-4 text-center">
                   <span className="inline-block bg-forest-100 text-forest-900 px-3 py-1 rounded-full text-sm font-semibold">
                     {card.quantity}

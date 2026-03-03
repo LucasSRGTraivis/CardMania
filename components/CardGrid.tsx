@@ -1,8 +1,7 @@
 'use client'
 
 import { Card } from '@/lib/supabase'
-import { Edit, Trash2, Package } from 'lucide-react'
-import Image from 'next/image'
+import { Edit, Trash2 } from 'lucide-react'
 
 interface CardGridProps {
   cards: Card[]
@@ -10,28 +9,29 @@ interface CardGridProps {
   onDelete: (cardId: string) => void
 }
 
+type CardMeta = {
+  cardType?: 'pokemon' | 'topps'
+  isSigned?: boolean
+  isNumbered?: boolean
+  isSpecial?: boolean
+  numbering?: string
+}
+
 export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
-  const getRarityColor = (rarity: string) => {
-    const colors: Record<string, string> = {
-      'Commune': 'bg-gray-100 text-gray-700 border-gray-300',
-      'Peu commune': 'bg-green-100 text-green-700 border-green-300',
-      'Rare': 'bg-blue-100 text-blue-700 border-blue-300',
-      'Ultra rare': 'bg-purple-100 text-purple-700 border-purple-300',
-      'Secrète': 'bg-yellow-100 text-yellow-700 border-yellow-300',
+  const parseMeta = (card: Card): CardMeta | null => {
+    try {
+      if (!card.notes) return null
+      return JSON.parse(card.notes) as CardMeta
+    } catch {
+      return null
     }
-    return colors[rarity] || 'bg-gray-100 text-gray-700 border-gray-300'
   }
 
-  const getConditionColor = (condition: string) => {
-    const colors: Record<string, string> = {
-      'Mint': 'text-green-600',
-      'Near Mint': 'text-green-500',
-      'Excellent': 'text-blue-500',
-      'Good': 'text-yellow-600',
-      'Played': 'text-orange-600',
-      'Poor': 'text-red-600',
-    }
-    return colors[condition] || 'text-gray-600'
+  const getPrice = (card: Card): number | null => {
+    const raw = (card.card_number || '').toString().replace(',', '.')
+    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
+    if (Number.isNaN(numeric)) return null
+    return numeric
   }
 
   return (
@@ -43,12 +43,10 @@ export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
         >
           <div className="aspect-[3/4] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden">
             {card.image_url ? (
-              <Image
+              <img
                 src={card.image_url}
                 alt={card.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="w-full h-full object-cover"
               />
             ) : (
               <div className="text-6xl">🃏</div>
@@ -68,26 +66,41 @@ export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
-              <span className={`px-2 py-1 rounded-lg border font-medium ${getRarityColor(card.rarity)}`}>
-                {card.rarity}
-              </span>
-              <span className={`font-medium ${getConditionColor(card.condition)}`}>
-                {card.condition}
-              </span>
-            </div>
+            {(() => {
+              const meta = parseMeta(card)
+              if (!meta) return null
+              const chips: string[] = []
+              if (meta.cardType === 'pokemon') chips.push('Pokémon')
+              if (meta.cardType === 'topps') chips.push('Topps')
+              if (meta.isSigned) chips.push('Signée')
+              if (meta.isNumbered) chips.push(meta.numbering ? `Numérotée ${meta.numbering}` : 'Numérotée')
+              if (meta.isSpecial) chips.push('Spéciale')
+              if (chips.length === 0) return null
+              return (
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {chips.map((label) => (
+                    <span
+                      key={label}
+                      className="px-2 py-1 rounded-full bg-forest-50 text-forest-800 border border-forest-100"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )
+            })()}
 
-            {card.card_number && (
-              <p className="text-sm text-forest-600">
-                N° {card.card_number}
-              </p>
-            )}
-
-            {card.notes && (
-              <p className="text-sm text-forest-600 line-clamp-2 italic">
-                {card.notes}
-              </p>
-            )}
+            <p className="text-sm text-forest-700 font-semibold">
+              {(() => {
+                const price = getPrice(card)
+                if (price == null) return 'Prix : —'
+                return `Prix : ${price.toLocaleString('fr-FR', {
+                  style: 'currency',
+                  currency: 'EUR',
+                  maximumFractionDigits: 2,
+                })}`
+              })()}
+            </p>
 
             <div className="flex gap-2 pt-2">
               <button
