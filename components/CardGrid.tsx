@@ -8,6 +8,7 @@ interface CardGridProps {
   onEdit: (card: Card) => void
   onDelete: (cardId: string) => void
   onPreview: (card: Card) => void
+}
 
 interface CardMeta {
   cardType?: 'pokemon' | 'topps'
