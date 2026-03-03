@@ -228,7 +228,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-gradient-to-br from-forest-50 to-forest-100 rounded-xl">
                 <p className="text-3xl font-bold text-forest-900">{cards.length}</p>
-                <p className="text-sm text-forest-600">Cartes favorites</p>
+                <p className="text-sm text-forest-600">Cartes dans la collection</p>
               </div>
               <div className="text-center p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
                 <p className="text-3xl font-bold text-forest-900">
