@@ -11,6 +11,7 @@ interface CardMeta {
   isSpecial: boolean
   numbering?: string
   images?: string[]
+  purchaseDate?: string
 }
 
 interface CardModalProps {
@@ -30,6 +31,7 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
   const [isSpecial, setIsSpecial] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [imagePreview, setImagePreview] = useState<string>('')
+  const [purchaseDate, setPurchaseDate] = useState('')
 
   useEffect(() => {
     if (card) {
@@ -49,6 +51,7 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
           if (typeof meta.isNumbered === 'boolean') setIsNumbered(meta.isNumbered)
           if (typeof meta.isSpecial === 'boolean') setIsSpecial(meta.isSpecial)
           if (meta.numbering) setNumbering(meta.numbering)
+          if (meta.purchaseDate) setPurchaseDate(meta.purchaseDate)
           if (meta.images && meta.images.length > 0) {
             setImages(meta.images)
             setImagePreview(meta.images[0])
@@ -93,6 +96,7 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
       isSpecial,
       numbering: isNumbered ? numbering : undefined,
       images,
+      purchaseDate: purchaseDate || undefined,
     }
 
     const payload: Partial<Card> = {
@@ -209,6 +213,18 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
                 placeholder="Ex: 25"
                 min="0"
                 step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-forest-900 mb-2">
+                Date d&apos;achat
+              </label>
+              <input
+                type="date"
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               />
             </div>
 
