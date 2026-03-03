@@ -14,6 +14,8 @@ interface DashboardClientProps {
   initialCards: Card[]
 }
 
+type SortMode = 'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'
+
 export default function DashboardClient({ user, initialCards }: DashboardClientProps) {
   const [cards, setCards] = useState<Card[]>(initialCards)
   const [filteredCards, setFilteredCards] = useState<Card[]>(initialCards)
@@ -22,8 +24,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [previewCard, setPreviewCard] = useState<Card | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [filterRarity, setFilterRarity] = useState<string>('all')
-  const [isDragging, setIsDragging] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>('date_desc')
   const [loadingUser, setLoadingUser] = useState(true)
   const [currentUser, setCurrentUser] = useState<any | null>(user ?? null)
   const router = useRouter()
@@ -61,8 +62,28 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const getPurchasePrice = (card: Card): number | null => {
+    const raw = (card.card_number || '').toString().replace(',', '.')
+    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
+    if (Number.isNaN(numeric)) return null
+    return numeric
+  }
+
+  const getPurchaseDate = (card: Card): Date | null => {
+    if (!card.notes) return null
+    try {
+      const meta = JSON.parse(card.notes) as { purchaseDate?: string }
+      if (!meta.purchaseDate) return null
+      const d = new Date(meta.purchaseDate)
+      if (isNaN(d.getTime())) return null
+      return d
+    } catch {
+      return null
+    }
+  }
+
   useEffect(() => {
-    let filtered = cards
+    let filtered = [...cards]
 
     if (searchTerm) {
       filtered = filtered.filter(card =>
@@ -71,12 +92,21 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       )
     }
 
-    if (filterRarity !== 'all') {
-      filtered = filtered.filter(card => card.rarity === filterRarity)
-    }
+    filtered.sort((a, b) => {
+      if (sortMode === 'price_desc' || sortMode === 'price_asc') {
+        const pa = getPurchasePrice(a) ?? 0
+        const pb = getPurchasePrice(b) ?? 0
+        return sortMode === 'price_desc' ? pb - pa : pa - pb
+      }
+
+      // tri par date
+      const da = getPurchaseDate(a)?.getTime() ?? 0
+      const db = getPurchaseDate(b)?.getTime() ?? 0
+      return sortMode === 'date_desc' ? db - da : da - db
+    })
 
     setFilteredCards(filtered)
-  }, [searchTerm, filterRarity, cards])
+  }, [searchTerm, sortMode, cards])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -137,8 +167,6 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
     setIsModalOpen(false)
   }
-
-  const rarities = ['Commune', 'Peu commune', 'Rare', 'Ultra rare', 'Secrète']
 
   const computeCardTotalPrice = (card: Card) => {
     // On utilise le champ card_number comme prix d'achat saisi dans le formulaire (ex: "25" ou "25€")
@@ -233,14 +261,14 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             
             <div className="flex gap-2">
               <select
-                value={filterRarity}
-                onChange={(e) => setFilterRarity(e.target.value)}
-                className="px-4 py-3 bg-white/80 backdrop-blur-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+                className="px-4 py-3 bg-white/80 backdrop-blur-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sm"
               >
-                <option value="all">Toutes les raretés</option>
-                {rarities.map(rarity => (
-                  <option key={rarity} value={rarity}>{rarity}</option>
-                ))}
+                <option value="date_desc">Date d&apos;achat : plus récentes</option>
+                <option value="date_asc">Date d&apos;achat : plus anciennes</option>
+                <option value="price_desc">Prix : du plus cher au moins cher</option>
+                <option value="price_asc">Prix : du moins cher au plus cher</option>
               </select>
 
               <div className="flex bg-white/80 backdrop-blur-sm border border-cream-200 rounded-xl overflow-hidden">
@@ -273,14 +301,14 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
             <div className="text-6xl mb-4">🃏</div>
             <h3 className="text-2xl font-semibold text-forest-900 mb-2">
-              {searchTerm || filterRarity !== 'all' ? 'Aucune carte trouvée' : 'Aucune carte dans ta collection'}
+              {searchTerm ? 'Aucune carte trouvée' : 'Aucune carte dans ta collection'}
             </h3>
             <p className="text-forest-600 mb-6">
-              {searchTerm || filterRarity !== 'all' 
+              {searchTerm 
                 ? 'Essaie de modifier tes filtres de recherche' 
                 : 'Ajoute ta première carte coup de cœur (Pokémon, Topps, etc.)'}
             </p>
-            {!searchTerm && filterRarity === 'all' && (
+            {!searchTerm && (
               <button
                 onClick={handleAddCard}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
