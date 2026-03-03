@@ -176,7 +176,18 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   }
 
   const rarities = ['Commune', 'Peu commune', 'Rare', 'Ultra rare', 'Secrète']
-  const totalCards = cards.reduce((sum, card) => sum + card.quantity, 0)
+
+  const computeCardTotalPrice = (card: Card) => {
+    // On utilise le champ card_number comme prix d'achat saisi dans le formulaire (ex: "25" ou "25€")
+    const raw = (card.card_number || '').toString().replace(',', '.')
+    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
+    if (Number.isNaN(numeric)) return 0
+    return numeric * (card.quantity || 1)
+  }
+
+  const totalCards = cards.reduce((sum, card) => sum + (card.quantity || 1), 0)
+  const totalSpent = cards.reduce((sum, card) => sum + computeCardTotalPrice(card), 0)
+  const averagePrice = totalCards > 0 ? totalSpent / totalCards : 0
 
   if (loadingUser) {
     return (
@@ -226,15 +237,19 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-gradient-to-br from-forest-50 to-forest-100 rounded-xl">
                 <p className="text-3xl font-bold text-forest-900">{cards.length}</p>
-                <p className="text-sm text-forest-600">Cartes uniques</p>
+                <p className="text-sm text-forest-600">Cartes favorites</p>
               </div>
               <div className="text-center p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
-                <p className="text-3xl font-bold text-forest-900">{totalCards}</p>
-                <p className="text-sm text-forest-600">Total en collection</p>
+                <p className="text-3xl font-bold text-forest-900">
+                  {totalSpent.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-forest-600">Total dépensé</p>
               </div>
               <div className="text-center p-4 bg-gradient-to-br from-forest-100 to-cream-100 rounded-xl">
-                <p className="text-3xl font-bold text-forest-900">{new Set(cards.map(c => c.set_name)).size}</p>
-                <p className="text-sm text-forest-600">Extensions</p>
+                <p className="text-3xl font-bold text-forest-900">
+                  {averagePrice.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-forest-600">Prix moyen par carte</p>
               </div>
             </div>
           </div>

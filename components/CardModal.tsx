@@ -113,12 +113,14 @@ export default function CardModal({ card, imageUrl, onClose, onSave }: CardModal
                 Prix d&apos;achat *
               </label>
               <input
-                type="text"
+                type="number"
                 required
                 value={formData.card_number}
                 onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-                placeholder="Ex: 25€"
+                placeholder="Ex: 25"
+                min="0"
+                step="0.01"
               />
             </div>
           </div>
