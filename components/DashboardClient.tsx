@@ -10,7 +10,7 @@ import CardGrid from './CardGrid'
 import CardList from './CardList'
 
 interface DashboardClientProps {
-  user: any
+  user?: any
   initialCards: Card[]
 }
 
@@ -25,24 +25,27 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [filterRarity, setFilterRarity] = useState<string>('all')
   const [isDragging, setIsDragging] = useState(false)
   const [loadingUser, setLoadingUser] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any | null>(user ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
     const checkAuthAndLoad = async () => {
       console.log('[Dashboard] Check auth')
-      const { data: { user }, error } = await supabase.auth.getUser()
-      console.log('[Dashboard] Auth result', { user, error })
-      if (!user) {
+      const { data: { user: supaUser }, error } = await supabase.auth.getUser()
+      console.log('[Dashboard] Auth result', { user: supaUser, error })
+      if (!supaUser) {
         router.push('/auth/login')
         return
       }
+
+      setCurrentUser(supaUser)
 
       if (initialCards.length === 0) {
         const { data: cardsData, error: cardsError } = await supabase
           .from('cards')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', supaUser.id)
           .order('created_at', { ascending: false })
 
         console.log('[Dashboard] Cards fetch', { cardsError, count: cardsData?.length })
@@ -141,6 +144,11 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   }
 
   const handleSaveCard = async (cardData: Partial<Card>) => {
+    if (!currentUser) {
+      console.warn('[Dashboard] handleSaveCard called without user')
+      return
+    }
+
     if (selectedCard) {
       const { data, error } = await supabase
         .from('cards')
@@ -155,7 +163,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
     } else {
       const { data, error } = await supabase
         .from('cards')
-        .insert([{ ...cardData, user_id: user.id }])
+        .insert([{ ...cardData, user_id: currentUser.id }])
         .select()
         .single()
 
@@ -194,10 +202,12 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm text-forest-600">Bienvenue,</p>
-                <p className="text-sm font-semibold text-forest-900">{user.email}</p>
-              </div>
+              {currentUser && (
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm text-forest-600">Bienvenue,</p>
+                  <p className="text-sm font-semibold text-forest-900">{currentUser.email}</p>
+                </div>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 bg-forest-100 hover:bg-forest-200 text-forest-900 rounded-lg transition-colors"
