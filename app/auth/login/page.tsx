@@ -15,18 +15,21 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      console.log('[Auth][Google] Start')
       setLoading(true)
       setError(null)
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
+      console.log('[Auth][Google] Result', { data, error })
       if (error) throw error
     } catch (error: any) {
+      console.error('[Auth][Google] Error', error)
       setError(error.message)
     } finally {
       setLoading(false)
@@ -36,28 +39,33 @@ export default function LoginPage() {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      console.log('[Auth][Email] Start', { mode: isSignUp ? 'signup' : 'login', email })
       setLoading(true)
       setError(null)
 
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         })
+        console.log('[Auth][Email][Signup] Result', { data, error })
         if (error) throw error
         setError('Vérifiez votre email pour confirmer votre inscription !')
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
+        console.log('[Auth][Email][Login] Result', { data, error })
         if (error) throw error
+        console.log('[Auth][Email][Login] Redirect to /dashboard')
         window.location.href = '/dashboard'
       }
     } catch (error: any) {
+      console.error('[Auth][Email] Error', error)
       setError(error.message)
     } finally {
       setLoading(false)
