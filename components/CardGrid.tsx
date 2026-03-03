@@ -16,6 +16,7 @@ interface CardMeta {
   isNumbered?: boolean
   isSpecial?: boolean
   numbering?: string
+  purchaseDate?: string
 }
 
 export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGridProps) {
@@ -122,6 +123,23 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
                     })}`
                   })()}
                 </p>
+
+                {(() => {
+                  const meta = parseMeta(card)
+                  if (!meta || !meta.purchaseDate) return null
+                  const d = new Date(meta.purchaseDate)
+                  if (isNaN(d.getTime())) return null
+                  return (
+                    <p className="text-[10px] text-white/70">
+                      Achetée le{' '}
+                      {d.toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  )
+                })()}
               </div>
             </div>
           </div>

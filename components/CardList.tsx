@@ -15,6 +15,7 @@ interface CardMeta {
   isNumbered?: boolean
   isSpecial?: boolean
   numbering?: string
+  purchaseDate?: string
 }
 
 export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
@@ -43,6 +44,7 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Nom</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Type</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Prix</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Date d&apos;achat</th>
               <th className="px-6 py-4 text-center text-sm font-semibold text-forest-900">Quantité</th>
               <th className="px-6 py-4 text-right text-sm font-semibold text-forest-900">Actions</th>
             </tr>
@@ -78,6 +80,19 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
                       style: 'currency',
                       currency: 'EUR',
                       maximumFractionDigits: 2,
+                    })
+                  })()}
+                </td>
+                <td className="px-6 py-4 text-sm text-forest-600">
+                  {(() => {
+                    const meta = parseMeta(card)
+                    if (!meta || !meta.purchaseDate) return '—'
+                    const d = new Date(meta.purchaseDate)
+                    if (isNaN(d.getTime())) return '—'
+                    return d.toLocaleDateString('fr-FR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
                     })
                   })()}
                 </td>
