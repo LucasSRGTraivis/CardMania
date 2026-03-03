@@ -41,10 +41,10 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
       {cards.map((card) => (
         <div
           key={card.id}
-          className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
+          className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
           onClick={() => onPreview(card)}
         >
-          <div className="aspect-[5/7] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden">
+          <div className="aspect-[5/7] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden rounded-lg">
             {card.image_url ? (
               <img
                 src={card.image_url}
