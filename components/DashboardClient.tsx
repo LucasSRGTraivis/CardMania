@@ -24,8 +24,40 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filterRarity, setFilterRarity] = useState<string>('all')
   const [isDragging, setIsDragging] = useState(false)
+  const [loadingUser, setLoadingUser] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    const checkAuthAndLoad = async () => {
+      console.log('[Dashboard] Check auth')
+      const { data: { user }, error } = await supabase.auth.getUser()
+      console.log('[Dashboard] Auth result', { user, error })
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      if (initialCards.length === 0) {
+        const { data: cardsData, error: cardsError } = await supabase
+          .from('cards')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        console.log('[Dashboard] Cards fetch', { cardsError, count: cardsData?.length })
+        if (!cardsError && cardsData) {
+          setCards(cardsData)
+          setFilteredCards(cardsData)
+        }
+      }
+
+      setLoadingUser(false)
+    }
+
+    checkAuthAndLoad()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     let filtered = cards
@@ -137,6 +169,17 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
   const rarities = ['Commune', 'Peu commune', 'Rare', 'Ultra rare', 'Secrète']
   const totalCards = cards.reduce((sum, card) => sum + card.quantity, 0)
+
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-cream-100 to-forest-50">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">🃏</div>
+          <p className="text-forest-700 font-medium">Chargement de votre collection...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100 to-forest-50">

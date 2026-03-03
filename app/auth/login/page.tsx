@@ -53,7 +53,12 @@ export default function LoginPage() {
         })
         console.log('[Auth][Email][Signup] Result', { data, error })
         if (error) throw error
-        setError('Vérifiez votre email pour confirmer votre inscription !')
+        if (data.session) {
+          console.log('[Auth][Email][Signup] Session active, redirect to /dashboard')
+          window.location.href = '/dashboard'
+        } else {
+          setError('Vérifiez votre email pour confirmer votre inscription !')
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
