@@ -19,6 +19,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [filteredCards, setFilteredCards] = useState<Card[]>(initialCards)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
+  const [previewCard, setPreviewCard] = useState<Card | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filterRarity, setFilterRarity] = useState<string>('all')
@@ -293,7 +294,8 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           <CardGrid 
             cards={filteredCards} 
             onEdit={handleEditCard} 
-            onDelete={handleDeleteCard} 
+            onDelete={handleDeleteCard}
+            onPreview={(card) => setPreviewCard(card)}
           />
         ) : (
           <CardList 
@@ -312,6 +314,31 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           }}
           onSave={handleSaveCard}
         />
+      )}
+
+      {previewCard && previewCard.image_url && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-40 cursor-zoom-out"
+          onClick={() => setPreviewCard(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white text-2xl"
+            onClick={(e) => {
+              e.stopPropagation()
+              setPreviewCard(null)
+            }}
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+          <div className="max-w-[90vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black">
+            <img
+              src={previewCard.image_url}
+              alt={previewCard.name}
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
       )}
     </div>
   )

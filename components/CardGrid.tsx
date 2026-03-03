@@ -7,7 +7,7 @@ interface CardGridProps {
   cards: Card[]
   onEdit: (card: Card) => void
   onDelete: (cardId: string) => void
-}
+  onPreview: (card: Card) => void
 
 type CardMeta = {
   cardType?: 'pokemon' | 'topps'
@@ -17,7 +17,7 @@ type CardMeta = {
   numbering?: string
 }
 
-export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
+export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGridProps) {
   const parseMeta = (card: Card): CardMeta | null => {
     try {
       if (!card.notes) return null
@@ -40,7 +40,7 @@ export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
         <div
           key={card.id}
           className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
-          onClick={() => onEdit(card)}
+          onClick={() => onPreview(card)}
         >
           <div className="aspect-[7/10] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden">
             {card.image_url ? (
@@ -52,8 +52,32 @@ export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
             ) : (
               <div className="text-6xl">🃏</div>
             )}
-            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-forest-900 shadow-md">
+            <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[11px] font-semibold text-forest-900 shadow-md">
               ×{card.quantity}
+            </div>
+
+            {/* Icônes édition / suppression (haut droite, seulement au survol) */}
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(card)
+                }}
+                className="p-1 rounded-full bg-white/90 text-forest-900 hover:bg-forest-100 shadow"
+                title="Modifier"
+              >
+                <Edit className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(card.id)
+                }}
+                className="p-1 rounded-full bg-white/90 text-red-700 hover:bg-red-100 shadow"
+                title="Supprimer"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
             </div>
 
             {/* Overlay infos au survol */}
@@ -103,28 +127,7 @@ export default function CardGrid({ cards, onEdit, onDelete }: CardGridProps) {
             </div>
           </div>
 
-          {/* Barre actions en bas (edit / delete) */}
-          <div className="flex gap-2 p-2 border-t border-cream-200 bg-white">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit(card)
-              }}
-              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-forest-100 hover:bg-forest-200 text-forest-900 rounded-lg text-xs transition-colors"
-            >
-              <Edit className="w-3 h-3" />
-              Modifier
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(card.id)
-              }}
-              className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs transition-colors"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
+          {/* Plus de texte permanent sous la carte : on garde uniquement le visuel */}
         </div>
       ))}
     </div>
