@@ -9,7 +9,7 @@ interface CardGridProps {
   onDelete: (cardId: string) => void
   onPreview: (card: Card) => void
 
-type CardMeta = {
+interface CardMeta {
   cardType?: 'pokemon' | 'topps'
   isSigned?: boolean
   isNumbered?: boolean

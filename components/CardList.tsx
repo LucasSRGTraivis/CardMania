@@ -9,7 +9,7 @@ interface CardListProps {
   onDelete: (cardId: string) => void
 }
 
-type CardMeta = {
+interface CardMeta {
   cardType?: 'pokemon' | 'topps'
   isSigned?: boolean
   isNumbered?: boolean
