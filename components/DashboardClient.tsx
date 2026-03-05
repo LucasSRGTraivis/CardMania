@@ -35,6 +35,8 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [cardIdToDelete, setCardIdToDelete] = useState<string | null>(null)
   const router = useRouter()
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [openCameraOnNextModal, setOpenCameraOnNextModal] = useState(false)
 
   useEffect(() => {
     const checkAuthAndLoad = async () => {
@@ -67,6 +69,18 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
     checkAuthAndLoad()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const updateIsMobile = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768)
+      }
+    }
+
+    updateIsMobile()
+    window.addEventListener('resize', updateIsMobile)
+    return () => window.removeEventListener('resize', updateIsMobile)
   }, [])
 
   const getPurchasePrice = (card: Card): number | null => {
@@ -115,6 +129,9 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
   const handleAddCard = () => {
     setSelectedCard(null)
+    if (isMobile) {
+      setOpenCameraOnNextModal(true)
+    }
     setIsModalOpen(true)
   }
 
@@ -193,6 +210,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       }
     }
 
+    setOpenCameraOnNextModal(false)
     setIsModalOpen(false)
   }
 
@@ -433,8 +451,10 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           card={selectedCard}
           onClose={() => {
             setIsModalOpen(false)
+            setOpenCameraOnNextModal(false)
           }}
           onSave={handleSaveCard}
+          openCameraOnMount={openCameraOnNextModal}
         />
       )}
 

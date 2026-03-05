@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card } from '@/lib/supabase'
 import { X } from 'lucide-react'
 
@@ -8,9 +8,15 @@ interface CardModalProps {
   card: Card | null
   onClose: () => void
   onSave: (card: Partial<Card>) => void
+  openCameraOnMount?: boolean
 }
 
-export default function CardModal({ card, onClose, onSave }: CardModalProps) {
+export default function CardModal({
+  card,
+  onClose,
+  onSave,
+  openCameraOnMount,
+}: CardModalProps) {
   const [name, setName] = useState('')
   const [serie, setSerie] = useState('')
   const [purchasePrice, setPurchasePrice] = useState('')
@@ -22,6 +28,7 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
   const [images, setImages] = useState<string[]>([])
   const [imagePreview, setImagePreview] = useState<string>('')
   const [purchaseDate, setPurchaseDate] = useState('')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (card) {
@@ -43,6 +50,12 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
       }
     }
   }, [card])
+
+  useEffect(() => {
+    if (openCameraOnMount && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }, [openCameraOnMount])
 
   const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -259,12 +272,30 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
                 Photos (une ou plusieurs)
               </label>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 multiple
                 onChange={handleImagesChange}
-                className="block w-full text-sm text-forest-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-forest-50 file:text-forest-700 hover:file:bg-forest-100"
+                className="hidden"
               />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-forest-50 text-forest-700 hover:bg-forest-100 border border-forest-100"
+                >
+                  Prendre une photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="hidden sm:inline-flex justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-cream-50 text-forest-800 hover:bg-cream-100 border border-cream-200"
+                >
+                  Importer une image
+                </button>
+              </div>
               {images.length > 1 && (
                 <p className="mt-2 text-xs text-forest-600">
                   Seule la première photo est utilisée comme visuel principal dans la grille, mais toutes sont sauvegardées dans la carte.
