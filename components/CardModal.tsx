@@ -92,8 +92,8 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
   const conditions = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Played', 'Poor']
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center sm:justify-center sm:p-4 z-50">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center sm:justify-center sm:p-4 z-50 overlay-fade-soft">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto panel-slide-up-soft">
         {/* Drag handle on mobile */}
         <div className="sm:hidden flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-cream-300 rounded-full" />

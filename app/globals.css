@@ -23,3 +23,48 @@ body {
     text-wrap: balance;
   }
 }
+
+/* Transitions douces pour contenu et overlays */
+@keyframes fade-soft {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes overlay-fade-soft {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-slide-up-soft {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fade-soft {
+  animation: fade-soft 200ms ease-out;
+}
+
+.overlay-fade-soft {
+  animation: overlay-fade-soft 180ms ease-out;
+}
+
+.panel-slide-up-soft {
+  animation: panel-slide-up-soft 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+

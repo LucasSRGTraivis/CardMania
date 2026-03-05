@@ -314,50 +314,55 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           </div>
         </div>
 
-        {filteredCards.length === 0 ? (
-          <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
-            <div className="text-6xl mb-4">🃏</div>
-            <h3 className="text-2xl font-semibold text-forest-900 mb-2">
-              {searchTerm ? 'Aucune carte trouvée' : 'Aucune carte dans ta collection'}
-            </h3>
-            <p className="text-forest-600 mb-6">
-              {searchTerm 
-                ? 'Essaie de modifier tes filtres de recherche' 
-                : 'Ajoute ta première carte coup de cœur (Pokémon, Topps, etc.)'}
-            </p>
-            {!searchTerm && (
-              <button
-                onClick={handleAddCard}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                Ajouter une carte
-              </button>
-            )}
-          </div>
-        ) : viewMode === 'grid' ? (
-          <CardGrid 
-            cards={filteredCards} 
-            onEdit={handleEditCard} 
-            onDelete={requestDeleteCard}
-            onPreview={(card) => setPreviewCard(card)}
-          />
-        ) : (
-          <CardList 
-            cards={filteredCards} 
-            onEdit={handleEditCard} 
-            onDelete={requestDeleteCard} 
-          />
-        )}
+        <div
+          key={`${viewMode}-${sortMode}-${searchTerm}-${filteredCards.length}`}
+          className="fade-soft"
+        >
+          {filteredCards.length === 0 ? (
+            <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
+              <div className="text-6xl mb-4">🃏</div>
+              <h3 className="text-2xl font-semibold text-forest-900 mb-2">
+                {searchTerm ? 'Aucune carte trouvée' : 'Aucune carte dans ta collection'}
+              </h3>
+              <p className="text-forest-600 mb-6">
+                {searchTerm 
+                  ? 'Essaie de modifier tes filtres de recherche' 
+                  : 'Ajoute ta première carte coup de cœur (Pokémon, Topps, etc.)'}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={handleAddCard}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  Ajouter une carte
+                </button>
+              )}
+            </div>
+          ) : viewMode === 'grid' ? (
+            <CardGrid 
+              cards={filteredCards} 
+              onEdit={handleEditCard} 
+              onDelete={requestDeleteCard}
+              onPreview={(card) => setPreviewCard(card)}
+            />
+          ) : (
+            <CardList 
+              cards={filteredCards} 
+              onEdit={handleEditCard} 
+              onDelete={requestDeleteCard} 
+            />
+          )}
+        </div>
       </main>
 
       {isSortOverlayOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center overlay-fade-soft"
           onClick={() => setIsSortOverlayOpen(false)}
         >
           <div
-            className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 border border-cream-200"
+            className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 border border-cream-200 panel-slide-up-soft"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -413,7 +418,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
       {previewCard && (
         <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-40"
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-40 overlay-fade-soft"
           onClick={() => setPreviewCard(null)}
         >
           <button
@@ -424,7 +429,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             ×
           </button>
 
-          <div className="max-w-[95vw] max-h-[80vh] flex items-center justify-center p-4">
+          <div className="max-w-[95vw] max-h-[80vh] flex items-center justify-center p-4 panel-slide-up-soft">
             {previewCard.main_image_url ? (
               <img
                 src={previewCard.main_image_url}

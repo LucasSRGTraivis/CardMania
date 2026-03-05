@@ -33,8 +33,8 @@ export default function ConfirmDialog({
       : 'bg-forest-500 hover:bg-forest-600 text-white shadow-lg hover:shadow-xl'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-cream-200 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 overlay-fade-soft">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-cream-200 overflow-hidden panel-slide-up-soft">
         <div className="px-6 pt-6 pb-4 flex flex-col items-center text-center gap-3">
           {icon && (
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shadow-sm">
