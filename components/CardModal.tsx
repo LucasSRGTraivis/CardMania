@@ -57,27 +57,60 @@ export default function CardModal({
     }
   }, [openCameraOnMount])
 
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const MAX_SIZE = 1200
+        let { width, height } = img
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+          if (width > height) {
+            height = Math.round((height * MAX_SIZE) / width)
+            width = MAX_SIZE
+          } else {
+            width = Math.round((width * MAX_SIZE) / height)
+            height = MAX_SIZE
+          }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Canvas context unavailable'))
+          return
+        }
+        ctx.drawImage(img, 0, 0, width, height)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+        resolve(dataUrl)
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('Image load failed'))
+      }
+      img.src = url
+    })
+  }
+
   const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     const fileArray = Array.from(files)
-    const readers: Promise<string>[] = fileArray.map(
-      (file) =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
-    )
-
-    Promise.all(readers).then((base64Images) => {
-      setImages(base64Images)
-      if (base64Images[0]) {
-        setImagePreview(base64Images[0])
-      }
-    })
+    Promise.all(fileArray.map((file) => compressImage(file)))
+      .then((base64Images) => {
+        setImages(base64Images)
+        if (base64Images[0]) {
+          setImagePreview(base64Images[0])
+        }
+      })
+      .catch(() => {
+        setImages([])
+        setImagePreview('')
+      })
+    e.target.value = ''
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -284,7 +317,7 @@ export default function CardModal({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-forest-50 text-forest-700 hover:bg-forest-100 border border-forest-100"
+                  className="sm:hidden inline-flex justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-forest-50 text-forest-700 hover:bg-forest-100 border border-forest-100"
                 >
                   Prendre une photo
                 </button>
