@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Card } from '@/lib/supabase'
 import { Edit, Trash2 } from 'lucide-react'
 
@@ -32,7 +33,13 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="text-6xl">🃏</div>
+              <Image
+                src="/assets/logo.png"
+                alt="CardMania"
+                width={75}
+                height={75}
+                className="object-contain drop-shadow-lg"
+              />
             )}
             {/* Icônes édition / suppression (haut droite, seulement au survol) */}
             <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10">

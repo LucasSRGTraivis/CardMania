@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { LogOut } from 'lucide-react'
 
 interface NavbarDesktopProps {
@@ -13,8 +14,15 @@ export default function NavbarDesktop({ userEmail, onLogout }: NavbarDesktopProp
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-forest-500 to-forest-700 rounded-xl flex items-center justify-center shadow-md transform rotate-6">
-              <span className="text-2xl transform -rotate-6">🃏</span>
+            <div className="w-90 h-90 flex items-center justify-center">
+              <Image
+                src="/assets/logo.png"
+                alt="CardMania"
+                width={75}
+                height={75}
+                className="object-contain"
+                priority
+              />
             </div>
             <h1 className="text-2xl font-bold text-forest-900 tracking-tight">
               CardMania
@@ -41,4 +49,5 @@ export default function NavbarDesktop({ userEmail, onLogout }: NavbarDesktopProp
     </nav>
   )
 }
+
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { LogIn, Mail } from 'lucide-react'
@@ -59,8 +60,15 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-forest-500 to-forest-700 rounded-2xl flex items-center justify-center shadow-lg transform rotate-6">
-              <span className="text-4xl text-white transform -rotate-6">🃏</span>
+            <div className="w-90 h-90 flex items-center justify-center">
+              <Image
+                src="/assets/logo.png"
+                alt="CardMania"
+                width={220}
+                height={220}
+                className="object-contain"
+                priority
+              />
             </div>
           </div>
           <h1 className="text-5xl font-bold text-forest-900 mb-2">

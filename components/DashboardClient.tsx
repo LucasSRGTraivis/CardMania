@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import type { Card } from '@/lib/supabase'
 import { Search, Edit, Trash2, Grid, List, Plus, SlidersHorizontal, Trash2 as TrashIcon } from 'lucide-react'
@@ -208,7 +209,16 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-cream-100 to-forest-50">
         <div className="text-center space-y-4">
-          <div className="text-5xl">🃏</div>
+          <div className="w-90 h-90 mx-auto flex items-center justify-center">
+            <Image
+              src="/assets/logo.png"
+              alt="CardMania"
+              width={300}
+              height={300}
+              className="object-contain"
+              priority
+            />
+          </div>
           <p className="text-forest-700 font-medium">Chargement de votre collection...</p>
         </div>
       </div>
@@ -221,15 +231,19 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-forest-700 rounded-xl flex items-center justify-center shadow-md transform rotate-6">
-                <span className="text-2xl transform -rotate-6">🃏</span>
+              <div className="w-20 h-20 flex items-center justify-center">
+                <Image
+                  src="/assets/logo.png"
+                  alt="CardMania"
+                  width={80}
+                  height={80}
+                  className="object-contain"
+                  priority
+                />
               </div>
               <h1 className="text-2xl font-bold text-forest-900">CardMania</h1>
             </div>
-            
-            {currentUser && (
-              <p className="text-sm text-forest-600 truncate max-w-[160px]">{currentUser.email}</p>
-            )}
+
           </div>
         </div>
       </nav>
@@ -320,7 +334,15 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         >
           {filteredCards.length === 0 ? (
             <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
-              <div className="text-6xl mb-4">🃏</div>
+              <div className="flex justify-center mb-4">
+                <Image
+                  src="/assets/logo.png"
+                  alt="CardMania"
+                  width={75}
+                  height={75}
+                  className="object-contain"
+                />
+              </div>
               <h3 className="text-2xl font-semibold text-forest-900 mb-2">
                 {searchTerm ? 'Aucune carte trouvée' : 'Aucune carte dans ta collection'}
               </h3>
@@ -438,7 +460,13 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
               />
             ) : (
               <div className="flex flex-col items-center gap-4 text-white/60">
-                <div className="text-8xl">🃏</div>
+                <Image
+                  src="/assets/logo.png"
+                  alt="CardMania"
+                  width={75}
+                  height={75}
+                  className="object-contain drop-shadow-2xl"
+                />
                 <p className="text-lg">{previewCard.name}</p>
               </div>
             )}
