@@ -9,13 +9,17 @@ export type Card = {
   id: string
   user_id: string
   name: string
-  set_name: string
-  card_number: string
-  rarity: string
-  condition: string
+  series: string
+  card_type: 'pokemon' | 'topps'
+  purchase_price: number
+  purchase_date: string | null
+  is_signed: boolean
+  is_numbered: boolean
+  numbering: string | null
+  is_special: boolean
   quantity: number
-  image_url?: string
-  notes?: string
+  main_image_url: string | null
+  images: string[] | null
   created_at: string
   updated_at: string
 }

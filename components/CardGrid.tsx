@@ -10,30 +10,10 @@ interface CardGridProps {
   onPreview: (card: Card) => void
 }
 
-interface CardMeta {
-  cardType?: 'pokemon' | 'topps'
-  isSigned?: boolean
-  isNumbered?: boolean
-  isSpecial?: boolean
-  numbering?: string
-  purchaseDate?: string
-}
-
 export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGridProps) {
-  const parseMeta = (card: Card): CardMeta | null => {
-    try {
-      if (!card.notes) return null
-      return JSON.parse(card.notes) as CardMeta
-    } catch {
-      return null
-    }
-  }
-
   const getPrice = (card: Card): number | null => {
-    const raw = (card.card_number || '').toString().replace(',', '.')
-    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
-    if (Number.isNaN(numeric)) return null
-    return numeric
+    if (card.purchase_price == null) return null
+    return Number(card.purchase_price)
   }
 
   return (
@@ -41,13 +21,13 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
       {cards.map((card) => (
         <div
           key={card.id}
-          className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
+          className="bg-white/80 backdrop-blur-sm rounded-1px shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
           onClick={() => onPreview(card)}
         >
           <div className="aspect-[5/7] bg-gradient-to-br from-cream-100 to-forest-50 flex items-center justify-center relative overflow-hidden rounded-lg">
-            {card.image_url ? (
+            {card.main_image_url ? (
               <img
-                src={card.image_url}
+                src={card.main_image_url}
                 alt={card.name}
                 className="w-full h-full object-cover"
               />
@@ -55,14 +35,14 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
               <div className="text-6xl">🃏</div>
             )}
             {/* Icônes édition / suppression (haut droite, seulement au survol) */}
-            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+            <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   onEdit(card)
                 }}
-                className="p-1 rounded-full bg-white/90 text-forest-900 hover:bg-forest-100 shadow"
+                className="p-1.5 rounded-full bg-white/90 text-forest-900 hover:bg-forest-100 active:bg-forest-200 shadow"
                 title="Modifier"
               >
                 <Edit className="w-3 h-3" />
@@ -73,7 +53,7 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
                   e.stopPropagation()
                   onDelete(card.id)
                 }}
-                className="p-1 rounded-full bg-white/90 text-red-700 hover:bg-red-100 shadow"
+                className="p-1.5 rounded-full bg-white/90 text-red-700 hover:bg-red-100 active:bg-red-200 shadow"
                 title="Supprimer"
               >
                 <Trash2 className="w-3 h-3" />
@@ -85,18 +65,16 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
               <div className="w-full bg-gradient-to-t from-black/80 via-black/60 to-transparent px-3 py-3 space-y-1 text-xs text-white">
                 <div>
                   <p className="font-semibold truncate">{card.name}</p>
-                  <p className="text-[11px] text-white/80 truncate">{card.set_name}</p>
+                  <p className="text-[11px] text-white/80 truncate">{card.series}</p>
                 </div>
 
                 {(() => {
-                  const meta = parseMeta(card)
-                  if (!meta) return null
                   const chips: string[] = []
-                  if (meta.cardType === 'pokemon') chips.push('Pokémon')
-                  if (meta.cardType === 'topps') chips.push('Topps')
-                  if (meta.isSigned) chips.push('Signée')
-                  if (meta.isNumbered) chips.push(meta.numbering ? `Numérotée ${meta.numbering}` : 'Numérotée')
-                  if (meta.isSpecial) chips.push('Spéciale')
+                  if (card.card_type === 'pokemon') chips.push('Pokémon')
+                  if (card.card_type === 'topps') chips.push('Topps')
+                  if (card.is_signed) chips.push('Signée')
+                  if (card.is_numbered) chips.push(card.numbering ? `Numérotée ${card.numbering}` : 'Numérotée')
+                  if (card.is_special) chips.push('Spéciale')
                   if (chips.length === 0) return null
                   return (
                     <div className="flex flex-wrap gap-1">
@@ -125,9 +103,8 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
                 </p>
 
                 {(() => {
-                  const meta = parseMeta(card)
-                  if (!meta || !meta.purchaseDate) return null
-                  const d = new Date(meta.purchaseDate)
+                  if (!card.purchase_date) return null
+                  const d = new Date(card.purchase_date)
                   if (isNaN(d.getTime())) return null
                   return (
                     <p className="text-[10px] text-white/70">

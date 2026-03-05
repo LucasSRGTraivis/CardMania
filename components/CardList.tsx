@@ -9,35 +9,97 @@ interface CardListProps {
   onDelete: (cardId: string) => void
 }
 
-interface CardMeta {
-  cardType?: 'pokemon' | 'topps'
-  isSigned?: boolean
-  isNumbered?: boolean
-  isSpecial?: boolean
-  numbering?: string
-  purchaseDate?: string
-}
-
 export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
-  const parseMeta = (card: Card): CardMeta | null => {
-    try {
-      if (!card.notes) return null
-      return JSON.parse(card.notes) as CardMeta
-    } catch {
-      return null
-    }
-  }
-
   const getPrice = (card: Card): number | null => {
-    const raw = (card.card_number || '').toString().replace(',', '.')
-    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
-    if (Number.isNaN(numeric)) return null
-    return numeric
+    if (card.purchase_price == null) return null
+    return Number(card.purchase_price)
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-cream-200">
-      <div className="overflow-x-auto">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
+      {/* Vue compacte pour mobile : cartes empilées */}
+      <div className="md:hidden divide-y divide-cream-200">
+        {cards.map((card) => {
+          const price = getPrice(card)
+          const priceLabel =
+            price == null
+              ? '—'
+              : price.toLocaleString('fr-FR', {
+                  style: 'currency',
+                  currency: 'EUR',
+                  maximumFractionDigits: 2,
+                })
+
+          let typeLabel = '—'
+          const bits: string[] = []
+          if (card.card_type === 'pokemon') bits.push('Pokémon')
+          if (card.card_type === 'topps') bits.push('Topps')
+          if (card.is_signed) bits.push('Signée')
+          if (card.is_numbered) bits.push(card.numbering ? `Numérotée ${card.numbering}` : 'Numérotée')
+          if (card.is_special) bits.push('Spéciale')
+          if (bits.length > 0) typeLabel = bits.join(' • ')
+
+          const dateLabel = (() => {
+            if (!card.purchase_date) return '—'
+            const d = new Date(card.purchase_date)
+            if (isNaN(d.getTime())) return '—'
+            return d.toLocaleDateString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })
+          })()
+
+          return (
+            <div key={card.id} className="p-4 flex flex-col gap-3">
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-forest-900 truncate">{card.name}</p>
+                  <p className="text-xs text-forest-600 truncate">{card.series}</p>
+                </div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-forest-100 text-forest-900 text-xs font-semibold">
+                  x{card.quantity}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-forest-700">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-forest-500">Prix</p>
+                  <p className="font-medium">{priceLabel}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-forest-500">Date d&apos;achat</p>
+                  <p className="font-medium">{dateLabel}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[11px] uppercase tracking-wide text-forest-500">Type</p>
+                  <p className="font-medium">{typeLabel}</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => onEdit(card)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-forest-100 text-forest-900 text-xs font-medium hover:bg-forest-200 transition-colors"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  Modifier
+                </button>
+                <button
+                  onClick={() => onDelete(card.id)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-medium hover:bg-red-200 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Vue tableau pour desktop */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-forest-100 border-b border-cream-200">
             <tr>
@@ -55,19 +117,17 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
                 <td className="px-6 py-4">
                   <div className="flex flex-col">
                     <span className="font-medium text-forest-900">{card.name}</span>
-                    <span className="text-xs text-forest-600">{card.set_name}</span>
+                    <span className="text-xs text-forest-600">{card.series}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-forest-600">
                   {(() => {
-                    const meta = parseMeta(card)
-                    if (!meta) return '—'
                     const bits: string[] = []
-                    if (meta.cardType === 'pokemon') bits.push('Pokémon')
-                    if (meta.cardType === 'topps') bits.push('Topps')
-                    if (meta.isSigned) bits.push('Signée')
-                    if (meta.isNumbered) bits.push(meta.numbering ? `Numérotée ${meta.numbering}` : 'Numérotée')
-                    if (meta.isSpecial) bits.push('Spéciale')
+                    if (card.card_type === 'pokemon') bits.push('Pokémon')
+                    if (card.card_type === 'topps') bits.push('Topps')
+                    if (card.is_signed) bits.push('Signée')
+                    if (card.is_numbered) bits.push(card.numbering ? `Numérotée ${card.numbering}` : 'Numérotée')
+                    if (card.is_special) bits.push('Spéciale')
                     if (bits.length === 0) return '—'
                     return bits.join(' • ')
                   })()}
@@ -85,9 +145,8 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
                 </td>
                 <td className="px-6 py-4 text-sm text-forest-600">
                   {(() => {
-                    const meta = parseMeta(card)
-                    if (!meta || !meta.purchaseDate) return '—'
-                    const d = new Date(meta.purchaseDate)
+                    if (!card.purchase_date) return '—'
+                    const d = new Date(card.purchase_date)
                     if (isNaN(d.getTime())) return '—'
                     return d.toLocaleDateString('fr-FR', {
                       day: '2-digit',

@@ -4,16 +4,6 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/lib/supabase'
 import { X } from 'lucide-react'
 
-interface CardMeta {
-  cardType: 'pokemon' | 'topps'
-  isSigned: boolean
-  isNumbered: boolean
-  isSpecial: boolean
-  numbering?: string
-  images?: string[]
-  purchaseDate?: string
-}
-
 interface CardModalProps {
   card: Card | null
   onClose: () => void
@@ -36,29 +26,20 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
   useEffect(() => {
     if (card) {
       setName(card.name)
-      setSerie(card.set_name)
-      setPurchasePrice(card.card_number || '')
-      if (card.image_url) {
-        setImages([card.image_url])
-        setImagePreview(card.image_url)
-      }
-
-      if (card.notes) {
-        try {
-          const meta = JSON.parse(card.notes) as CardMeta
-          if (meta.cardType) setCardType(meta.cardType)
-          if (typeof meta.isSigned === 'boolean') setIsSigned(meta.isSigned)
-          if (typeof meta.isNumbered === 'boolean') setIsNumbered(meta.isNumbered)
-          if (typeof meta.isSpecial === 'boolean') setIsSpecial(meta.isSpecial)
-          if (meta.numbering) setNumbering(meta.numbering)
-          if (meta.purchaseDate) setPurchaseDate(meta.purchaseDate)
-          if (meta.images && meta.images.length > 0) {
-            setImages(meta.images)
-            setImagePreview(meta.images[0])
-          }
-        } catch {
-          // notes non JSON, on ignore
-        }
+      setSerie(card.series)
+      setPurchasePrice(card.purchase_price != null ? String(card.purchase_price) : '')
+      setCardType(card.card_type)
+      setIsSigned(card.is_signed)
+      setIsNumbered(card.is_numbered)
+      setNumbering(card.numbering || '')
+      setIsSpecial(card.is_special)
+      if (card.purchase_date) setPurchaseDate(card.purchase_date)
+      if (card.images && card.images.length > 0) {
+        setImages(card.images)
+        setImagePreview(card.images[0] || '')
+      } else if (card.main_image_url) {
+        setImages([card.main_image_url])
+        setImagePreview(card.main_image_url)
       }
     }
   }, [card])
@@ -89,27 +70,19 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const meta: CardMeta = {
-      cardType,
-      isSigned,
-      isNumbered,
-      isSpecial,
-      numbering: isNumbered ? numbering : undefined,
-      images,
-      purchaseDate: purchaseDate || undefined,
-    }
-
     const payload: Partial<Card> = {
-      // champs existants de la table
       name,
-      set_name: serie,
-      // on réutilise card_number comme prix d'achat (en texte)
-      card_number: purchasePrice,
-      rarity: 'Commune',
-      condition: 'Near Mint',
+      series: serie,
+      card_type: cardType,
+      purchase_price: purchasePrice ? parseFloat(purchasePrice.replace(',', '.')) : 0,
+      purchase_date: purchaseDate || null,
+      is_signed: isSigned,
+      is_numbered: isNumbered,
+      numbering: isNumbered ? numbering : null,
+      is_special: isSpecial,
       quantity: 1,
-      image_url: imagePreview || undefined,
-      notes: JSON.stringify(meta),
+      main_image_url: imagePreview || null,
+      images,
     }
 
     onSave(payload)
@@ -119,9 +92,13 @@ export default function CardModal({ card, onClose, onSave }: CardModalProps) {
   const conditions = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Played', 'Poor']
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-cream-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center sm:justify-center sm:p-4 z-50">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
+        {/* Drag handle on mobile */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-cream-300 rounded-full" />
+        </div>
+        <div className="sticky top-0 bg-white border-b border-cream-200 px-6 py-4 flex items-center justify-between sm:rounded-t-2xl">
           <h2 className="text-2xl font-bold text-forest-900">
             {card ? 'Modifier la carte' : 'Ajouter une carte'}
           </h2>
