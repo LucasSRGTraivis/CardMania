@@ -16,7 +16,7 @@ export default function NavbarDesktop({ userEmail, onLogout }: NavbarDesktopProp
           <div className="flex items-center gap-3">
             <div className="w-90 h-90 flex items-center justify-center">
               <Image
-                src="/assets/logo.png"
+                src="/Logo.png"
                 alt="CardMania"
                 width={75}
                 height={75}

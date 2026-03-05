@@ -211,7 +211,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         <div className="text-center space-y-4">
           <div className="w-90 h-90 mx-auto flex items-center justify-center">
             <Image
-              src="/assets/logo.png"
+              src="/Logo.png"
               alt="CardMania"
               width={300}
               height={300}
@@ -233,7 +233,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             <div className="flex items-center gap-3">
               <div className="w-20 h-20 flex items-center justify-center">
                 <Image
-                  src="/assets/logo.png"
+                  src="/Logo.png"
                   alt="CardMania"
                   width={80}
                   height={80}
@@ -336,7 +336,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
               <div className="flex justify-center mb-4">
                 <Image
-                  src="/assets/logo.png"
+                  src="/Logo.png"
                   alt="CardMania"
                   width={75}
                   height={75}
@@ -461,7 +461,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             ) : (
               <div className="flex flex-col items-center gap-4 text-white/60">
                 <Image
-                  src="/assets/logo.png"
+                  src="/Logo.png"
                   alt="CardMania"
                   width={75}
                   height={75}

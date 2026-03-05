@@ -62,7 +62,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-6">
             <div className="w-90 h-90 flex items-center justify-center">
               <Image
-                src="/assets/logo.png"
+                src="/Logo.png"
                 alt="CardMania"
                 width={220}
                 height={220}
