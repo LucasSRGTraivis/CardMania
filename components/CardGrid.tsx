@@ -34,7 +34,7 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
               />
             ) : (
               <Image
-                src="/Logo.png"
+                src="/assets/Logo.png"
                 alt="CardMania"
                 width={75}
                 height={75}

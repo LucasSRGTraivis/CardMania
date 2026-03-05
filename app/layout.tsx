@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'CardMania - Gérez votre collection de cartes',
   description: 'Application moderne pour gérer et répertorier vos cartes à collectionner',
   icons: {
-    icon: '/Favicon.png',
+    icon: '/assets/Favicon.png',
   },
 }
 
