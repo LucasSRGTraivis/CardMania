@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { X, Check } from 'lucide-react'
 
 interface CardCropperModalProps {
@@ -14,56 +14,166 @@ interface Point {
   y: number
 }
 
+interface GestureState {
+  mode: 'none' | 'pan' | 'pinch'
+  startOffset: Point
+  startScale: number
+  startRotation: number
+  startPoint?: Point
+  startCenter?: Point
+  startDistance?: number
+  startAngle?: number
+}
+
 export default function CardCropperModal({ image, onCancel, onConfirm }: CardCropperModalProps) {
   const frameRef = useRef<HTMLDivElement | null>(null)
-  const imgElRef = useRef<HTMLImageElement | null>(null)
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null)
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null)
   const [baseScale, setBaseScale] = useState(1)
-  const [scale, setScale] = useState(1.1)
+  const [scale, setScale] = useState(1)
+  const [rotation, setRotation] = useState(0) // en radians
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
-  const dragStartRef = useRef<{ pointerId: number; startPoint: Point; startOffset: Point } | null>(null)
+
+  const pointersRef = useRef<Map<number, Point>>(new Map())
+  const gestureRef = useRef<GestureState>({
+    mode: 'none',
+    startOffset: { x: 0, y: 0 },
+    startScale: 1,
+    startRotation: 0,
+  })
 
   useEffect(() => {
     const img = new Image()
     img.src = image
     img.onload = () => {
-      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
+      const nat = { width: img.naturalWidth, height: img.naturalHeight }
+      setNaturalSize(nat)
+
       if (frameRef.current) {
         const { clientWidth, clientHeight } = frameRef.current
-        setFrameSize({ width: clientWidth, height: clientHeight })
-        const base = Math.max(clientWidth / img.naturalWidth, clientHeight / img.naturalHeight)
+        const frame = { width: clientWidth, height: clientHeight }
+        setFrameSize(frame)
+        const base = Math.max(frame.width / nat.width, frame.height / nat.height)
         setBaseScale(base)
+        setScale(1)
+        setRotation(0)
+        setOffset({ x: 0, y: 0 })
       }
     }
   }, [image])
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const updatePointer = (id: number, point: Point) => {
+    const next = new Map(pointersRef.current)
+    next.set(id, point)
+    pointersRef.current = next
+  }
+
+  const removePointer = (id: number) => {
+    const next = new Map(pointersRef.current)
+    next.delete(id)
+    pointersRef.current = next
+  }
+
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!frameRef.current) return
     frameRef.current.setPointerCapture(e.pointerId)
-    dragStartRef.current = {
-      pointerId: e.pointerId,
-      startPoint: { x: e.clientX, y: e.clientY },
-      startOffset: { ...offset },
+    const p = { x: e.clientX, y: e.clientY }
+    updatePointer(e.pointerId, p)
+
+    const pointers = Array.from(pointersRef.current.values())
+
+    if (pointers.length === 1) {
+      gestureRef.current = {
+        mode: 'pan',
+        startOffset: { ...offset },
+        startScale: scale,
+        startRotation: rotation,
+        startPoint: p,
+      }
+    } else if (pointers.length === 2) {
+      const [p1, p2] = pointers
+      const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+      const dx = p2.x - p1.x
+      const dy = p2.y - p1.y
+      const distance = Math.hypot(dx, dy)
+      const angle = Math.atan2(dy, dx)
+
+      gestureRef.current = {
+        mode: 'pinch',
+        startOffset: { ...offset },
+        startScale: scale,
+        startRotation: rotation,
+        startCenter: center,
+        startDistance: distance,
+        startAngle: angle,
+      }
     }
   }
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStartRef.current) return
-    const { startPoint, startOffset } = dragStartRef.current
-    const dx = e.clientX - startPoint.x
-    const dy = e.clientY - startPoint.y
-    setOffset({
-      x: startOffset.x + dx,
-      y: startOffset.y + dy,
-    })
+  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!frameRef.current) return
+    if (pointersRef.current.size === 0) return
+
+    const p = { x: e.clientX, y: e.clientY }
+    updatePointer(e.pointerId, p)
+
+    const gesture = gestureRef.current
+    const pointers = Array.from(pointersRef.current.values())
+
+    if (gesture.mode === 'pan' && gesture.startPoint && pointers.length === 1) {
+      const dx = p.x - gesture.startPoint.x
+      const dy = p.y - gesture.startPoint.y
+      setOffset({
+        x: gesture.startOffset.x + dx,
+        y: gesture.startOffset.y + dy,
+      })
+    } else if (gesture.mode === 'pinch' && pointers.length >= 2 && gesture.startDistance && gesture.startCenter && gesture.startAngle !== undefined) {
+      const [p1, p2] = pointers
+      const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+      const dx = p2.x - p1.x
+      const dy = p2.y - p1.y
+      const distance = Math.hypot(dx, dy)
+      const angle = Math.atan2(dy, dx)
+
+      const scaleFactor = distance / gesture.startDistance
+      const nextScale = Math.min(3, Math.max(0.8, gesture.startScale * scaleFactor))
+      const deltaAngle = angle - gesture.startAngle
+      const nextRotation = gesture.startRotation + deltaAngle
+
+      const dxCenter = center.x - gesture.startCenter.x
+      const dyCenter = center.y - gesture.startCenter.y
+
+      setScale(nextScale)
+      setRotation(nextRotation)
+      setOffset({
+        x: gesture.startOffset.x + dxCenter,
+        y: gesture.startOffset.y + dyCenter,
+      })
+    }
   }
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStartRef.current) return
-    if (dragStartRef.current.pointerId === e.pointerId && frameRef.current) {
-      frameRef.current.releasePointerCapture(e.pointerId)
-      dragStartRef.current = null
+  const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!frameRef.current) return
+    frameRef.current.releasePointerCapture(e.pointerId)
+    removePointer(e.pointerId)
+
+    const pointers = Array.from(pointersRef.current.values())
+    if (pointers.length === 0) {
+      gestureRef.current = {
+        mode: 'none',
+        startOffset: { ...offset },
+        startScale: scale,
+        startRotation: rotation,
+      }
+    } else if (pointers.length === 1) {
+      const p = pointers[0]
+      gestureRef.current = {
+        mode: 'pan',
+        startOffset: { ...offset },
+        startScale: scale,
+        startRotation: rotation,
+        startPoint: p,
+      }
     }
   }
 
@@ -86,6 +196,7 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
       ctx.clearRect(0, 0, cw, ch)
       ctx.save()
       ctx.translate(cw / 2 + offset.x, ch / 2 + offset.y)
+      ctx.rotate(rotation)
       ctx.scale(displayScale, displayScale)
       ctx.drawImage(img, -imgW / 2, -imgH / 2)
       ctx.restore()
@@ -98,97 +209,82 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
   const displayScale = baseScale * scale
 
   return (
-    <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center px-4 sm:px-6">
-      <div className="w-full max-w-md rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border border-white/10 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.22em] text-white/60">
-              Recadrage précis
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center sm:justify-center sm:p-4 z-50 overlay-fade-soft">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden border border-cream-200">
+        <div className="sm:hidden flex justify-center pt-3 pb-1 bg-white">
+          <div className="w-10 h-1 bg-cream-300 rounded-full" />
+        </div>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-cream-200 bg-white">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-500">
+              Recadrage de la photo
             </p>
-            <h2 className="mt-1 text-lg sm:text-xl font-semibold text-white">
-              Aligne ta carte dans le cadre
+            <h2 className="mt-1 text-lg sm:text-xl font-bold text-forest-900">
+              Place ta carte dans le cadre
             </h2>
           </div>
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            className="p-2 hover:bg-cream-100 rounded-lg transition-colors text-forest-600"
           >
-            <X className="h-5 w-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="px-5 pt-4 pb-3 space-y-3 text-xs text-white/70">
-          <p>
-            Glisse la photo pour centrer ta carte, utilise le zoom pour remplir le cadre doré. Tout ce
-            qui sort du cadre sera coupé.
+        <div className="px-6 pt-4 pb-3 space-y-2 bg-gradient-to-b from-cream-50 to-cream-100 border-b border-cream-200">
+          <p className="text-xs text-forest-700">
+            Utilise tes doigts pour déplacer, zoomer et tourner la photo. Aligne ta carte avec le cadre
+            central : tout ce qui dépasse sera automatiquement coupé.
           </p>
         </div>
 
-        <div className="px-5 pb-4">
+        <div className="px-6 pb-5 pt-4 bg-cream-50">
           <div
             ref={frameRef}
-            className="relative mx-auto w-full max-w-[320px] aspect-[63/88] bg-slate-900/80 rounded-2xl overflow-hidden touch-none"
+            className="relative mx-auto w-full max-w-[320px] aspect-[63/88] bg-forest-900/5 rounded-2xl overflow-hidden touch-none"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
           >
-            {/* Image sous-jacente, manipulable */}
             {naturalSize && (
               <div className="absolute inset-0">
                 <img
-                  ref={imgElRef}
                   src={image}
                   alt="Ajuster la carte"
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none"
+                  className="absolute top-1/2 left-1/2 select-none pointer-events-none"
                   style={{
                     width: naturalSize.width * displayScale,
                     height: naturalSize.height * displayScale,
-                    transform: `translate(calc(-50%px + ${offset.x}px), calc(-50%px + ${offset.y}px))`,
+                    transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) rotate(${rotation}rad)`,
                   }}
                   draggable={false}
                 />
               </div>
             )}
 
-            {/* Cadre de la carte avec assombrissement autour */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="relative w-[78%] h-[84%] rounded-[1.25rem] border-[3px] border-amber-300/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)]">
-                <div className="absolute inset-[10%] border border-amber-200/60 rounded-[0.85rem] border-dashed" />
+              <div className="relative w-[80%] h-[86%] rounded-[1.25rem] border-[3px] border-forest-500/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] bg-transparent">
+                <div className="absolute inset-[10%] border border-forest-400/70 rounded-[0.9rem] border-dashed" />
               </div>
             </div>
-          </div>
-
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-white/60">
-              <span>Zoom</span>
-              <span className="tabular-nums">{scale.toFixed(2)}x</span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={2.2}
-              step={0.01}
-              value={scale}
-              onChange={(e) => setScale(parseFloat(e.target.value))}
-              className="w-full accent-amber-300"
-            />
           </div>
 
           <div className="mt-5 flex flex-col sm:flex-row gap-3">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex-1 px-6 py-3 bg-cream-100 hover:bg-cream-200 text-forest-900 font-semibold rounded-xl transition-colors"
             >
               Annuler
             </button>
             <button
               type="button"
               onClick={handleConfirm}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/40 hover:shadow-amber-400/50 hover:brightness-105 transition-all"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center gap-2"
             >
-              <Check className="h-5 w-5" />
+              <Check className="w-5 h-5" />
               Valider le cadrage
             </button>
           </div>
