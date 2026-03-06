@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
 import { X, Check } from 'lucide-react'
 
 interface CardCropperModalProps {
@@ -158,22 +158,51 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
     img.onload = () => {
       const { width: imgW, height: imgH } = naturalSize
       const { width: cw, height: ch } = frameSize
-      const canvas = document.createElement('canvas')
-      canvas.width = cw
-      canvas.height = ch
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
 
       const displayScale = baseScale * scale
 
-      ctx.clearRect(0, 0, cw, ch)
-      ctx.save()
-      ctx.translate(cw / 2 + offset.x, ch / 2 + offset.y)
-      ctx.scale(displayScale, displayScale)
-      ctx.drawImage(img, -imgW / 2, -imgH / 2)
-      ctx.restore()
+      // 1) On dessine d'abord sur un canvas "plein cadre" qui correspond exactement
+      // à la zone grisée + cadre vert que l'utilisateur voit.
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = cw
+      tempCanvas.height = ch
+      const tempCtx = tempCanvas.getContext('2d')
+      if (!tempCtx) return
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+      tempCtx.clearRect(0, 0, cw, ch)
+      tempCtx.save()
+      tempCtx.translate(cw / 2 + offset.x, ch / 2 + offset.y)
+      tempCtx.scale(displayScale, displayScale)
+      tempCtx.drawImage(img, -imgW / 2, -imgH / 2)
+      tempCtx.restore()
+
+      // 2) La zone réellement visible pour la carte est le cadre vert,
+      // qui occupe 80% de la largeur et 86% de la hauteur du cadre.
+      const frameW = cw * 0.8
+      const frameH = ch * 0.86
+      const frameX = (cw - frameW) / 2
+      const frameY = (ch - frameH) / 2
+
+      const finalCanvas = document.createElement('canvas')
+      finalCanvas.width = frameW
+      finalCanvas.height = frameH
+      const finalCtx = finalCanvas.getContext('2d')
+      if (!finalCtx) return
+
+      finalCtx.clearRect(0, 0, frameW, frameH)
+      finalCtx.drawImage(
+        tempCanvas,
+        frameX,
+        frameY,
+        frameW,
+        frameH,
+        0,
+        0,
+        frameW,
+        frameH
+      )
+
+      const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9)
       onConfirm(dataUrl)
     }
   }
@@ -182,7 +211,7 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center sm:justify-center sm:p-4 z-50 overlay-fade-soft">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden border border-cream-200">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto border border-cream-200">
         <div className="sm:hidden flex justify-center pt-3 pb-1 bg-white">
           <div className="w-10 h-1 bg-cream-300 rounded-full" />
         </div>
@@ -206,8 +235,8 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
 
         <div className="px-6 pt-4 pb-3 space-y-2 bg-gradient-to-b from-cream-50 to-cream-100 border-b border-cream-200">
           <p className="text-xs text-forest-700">
-            Utilise tes doigts pour déplacer et zoomer la photo. Aligne ta carte avec le cadre central :
-            tout ce qui dépasse sera automatiquement coupé.
+            Fais glisser la photo pour la déplacer. Zoome avec tes doigts (mobile) ou la molette / le
+            trackpad (ordinateur). Aligne ta carte avec le cadre : tout ce qui dépasse sera coupé.
           </p>
         </div>
 
@@ -219,6 +248,16 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
+            onWheel={(e: ReactWheelEvent<HTMLDivElement>) => {
+              e.preventDefault()
+              const delta = -e.deltaY
+              const zoomFactor = 1 + delta * 0.0015
+              if (!Number.isFinite(zoomFactor) || zoomFactor <= 0) return
+              setScale((prev) => {
+                const next = prev * zoomFactor
+                return Math.min(3, Math.max(0.8, next))
+              })
+            }}
           >
             {naturalSize && (
               <div className="absolute inset-0">
@@ -237,9 +276,7 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
             )}
 
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="relative w-[80%] h-[86%] rounded-[1.25rem] border-[3px] border-forest-500/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] bg-transparent">
-                <div className="absolute inset-[10%] border border-forest-400/70 rounded-[0.9rem] border-dashed" />
-              </div>
+              <div className="relative w-[80%] h-[86%] rounded-[1.25rem] border-[3px] border-forest-500/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] bg-transparent" />
             </div>
           </div>
 
