@@ -225,7 +225,7 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
                 <img
                   src={image}
                   alt="Ajuster la carte"
-                  className="absolute top-1/2 left-1/2 select-none pointer-events-none"
+                  className="absolute top-1/2 left-1/2 select-none pointer-events-none max-w-none max-h-none"
                   style={{
                     width: naturalSize.width * displayScale,
                     height: naturalSize.height * displayScale,
