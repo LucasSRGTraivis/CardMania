@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card } from '@/lib/supabase'
 import { X } from 'lucide-react'
+import CardCropperModal from './CardCropperModal'
 
 interface CardModalProps {
   card: Card | null
@@ -28,6 +29,8 @@ export default function CardModal({
   const [images, setImages] = useState<string[]>([])
   const [imagePreview, setImagePreview] = useState<string>('')
   const [purchaseDate, setPurchaseDate] = useState('')
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null)
+  const [pendingImages, setPendingImages] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -101,14 +104,15 @@ export default function CardModal({
     const fileArray = Array.from(files)
     Promise.all(fileArray.map((file) => compressImage(file)))
       .then((base64Images) => {
-        setImages(base64Images)
-        if (base64Images[0]) {
-          setImagePreview(base64Images[0])
-        }
+        if (base64Images.length === 0) return
+        setPendingImages(base64Images)
+        setRawImageForCrop(base64Images[0])
       })
       .catch(() => {
         setImages([])
         setImagePreview('')
+        setPendingImages([])
+        setRawImageForCrop(null)
       })
     e.target.value = ''
   }
@@ -133,9 +137,6 @@ export default function CardModal({
 
     onSave(payload)
   }
-
-  const rarities = ['Commune', 'Peu commune', 'Rare', 'Ultra rare', 'Secrète']
-  const conditions = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Played', 'Poor']
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center sm:justify-center sm:p-4 z-50 overlay-fade-soft">
@@ -354,6 +355,26 @@ export default function CardModal({
           </div>
         </form>
       </div>
+      {rawImageForCrop && (
+        <CardCropperModal
+          image={rawImageForCrop}
+          onCancel={() => {
+            if (pendingImages.length > 0) {
+              setImages(pendingImages)
+              setImagePreview(pendingImages[0])
+            }
+            setPendingImages([])
+            setRawImageForCrop(null)
+          }}
+          onConfirm={(cropped) => {
+            const allImages = [cropped, ...pendingImages.slice(1)]
+            setImages(allImages)
+            setImagePreview(cropped)
+            setPendingImages([])
+            setRawImageForCrop(null)
+          }}
+        />
+      )}
     </div>
   )
 }
