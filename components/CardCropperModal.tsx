@@ -18,11 +18,8 @@ interface GestureState {
   mode: 'none' | 'pan' | 'pinch'
   startOffset: Point
   startScale: number
-  startRotation: number
   startPoint?: Point
-  startCenter?: Point
   startDistance?: number
-  startAngle?: number
 }
 
 export default function CardCropperModal({ image, onCancel, onConfirm }: CardCropperModalProps) {
@@ -31,7 +28,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null)
   const [baseScale, setBaseScale] = useState(1)
   const [scale, setScale] = useState(1)
-  const [rotation, setRotation] = useState(0) // en radians
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
 
   const pointersRef = useRef<Map<number, Point>>(new Map())
@@ -39,7 +35,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
     mode: 'none',
     startOffset: { x: 0, y: 0 },
     startScale: 1,
-    startRotation: 0,
   })
 
   useEffect(() => {
@@ -56,7 +51,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
         const base = Math.max(frame.width / nat.width, frame.height / nat.height)
         setBaseScale(base)
         setScale(1)
-        setRotation(0)
         setOffset({ x: 0, y: 0 })
       }
     }
@@ -87,25 +81,19 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
         mode: 'pan',
         startOffset: { ...offset },
         startScale: scale,
-        startRotation: rotation,
         startPoint: p,
       }
     } else if (pointers.length === 2) {
       const [p1, p2] = pointers
-      const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
       const dx = p2.x - p1.x
       const dy = p2.y - p1.y
       const distance = Math.hypot(dx, dy)
-      const angle = Math.atan2(dy, dx)
 
       gestureRef.current = {
         mode: 'pinch',
         startOffset: { ...offset },
         startScale: scale,
-        startRotation: rotation,
-        startCenter: center,
         startDistance: distance,
-        startAngle: angle,
       }
     }
   }
@@ -127,28 +115,15 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
         x: gesture.startOffset.x + dx,
         y: gesture.startOffset.y + dy,
       })
-    } else if (gesture.mode === 'pinch' && pointers.length >= 2 && gesture.startDistance && gesture.startCenter && gesture.startAngle !== undefined) {
+    } else if (gesture.mode === 'pinch' && pointers.length >= 2 && gesture.startDistance) {
       const [p1, p2] = pointers
-      const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
       const dx = p2.x - p1.x
       const dy = p2.y - p1.y
       const distance = Math.hypot(dx, dy)
-      const angle = Math.atan2(dy, dx)
 
       const scaleFactor = distance / gesture.startDistance
       const nextScale = Math.min(3, Math.max(0.8, gesture.startScale * scaleFactor))
-      const deltaAngle = angle - gesture.startAngle
-      const nextRotation = gesture.startRotation + deltaAngle
-
-      const dxCenter = center.x - gesture.startCenter.x
-      const dyCenter = center.y - gesture.startCenter.y
-
       setScale(nextScale)
-      setRotation(nextRotation)
-      setOffset({
-        x: gesture.startOffset.x + dxCenter,
-        y: gesture.startOffset.y + dyCenter,
-      })
     }
   }
 
@@ -163,7 +138,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
         mode: 'none',
         startOffset: { ...offset },
         startScale: scale,
-        startRotation: rotation,
       }
     } else if (pointers.length === 1) {
       const p = pointers[0]
@@ -171,7 +145,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
         mode: 'pan',
         startOffset: { ...offset },
         startScale: scale,
-        startRotation: rotation,
         startPoint: p,
       }
     }
@@ -196,7 +169,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
       ctx.clearRect(0, 0, cw, ch)
       ctx.save()
       ctx.translate(cw / 2 + offset.x, ch / 2 + offset.y)
-      ctx.rotate(rotation)
       ctx.scale(displayScale, displayScale)
       ctx.drawImage(img, -imgW / 2, -imgH / 2)
       ctx.restore()
@@ -234,8 +206,8 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
 
         <div className="px-6 pt-4 pb-3 space-y-2 bg-gradient-to-b from-cream-50 to-cream-100 border-b border-cream-200">
           <p className="text-xs text-forest-700">
-            Utilise tes doigts pour déplacer, zoomer et tourner la photo. Aligne ta carte avec le cadre
-            central : tout ce qui dépasse sera automatiquement coupé.
+            Utilise tes doigts pour déplacer et zoomer la photo. Aligne ta carte avec le cadre central :
+            tout ce qui dépasse sera automatiquement coupé.
           </p>
         </div>
 
@@ -257,7 +229,7 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
                   style={{
                     width: naturalSize.width * displayScale,
                     height: naturalSize.height * displayScale,
-                    transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) rotate(${rotation}rad)`,
+                    transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`,
                   }}
                   draggable={false}
                 />
