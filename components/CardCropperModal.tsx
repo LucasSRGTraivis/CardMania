@@ -184,12 +184,16 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
       const frameY = (ch - frameH) / 2
 
       const finalCanvas = document.createElement('canvas')
-      finalCanvas.width = frameW
-      finalCanvas.height = frameH
+      // On exporte en plus haute résolution que l'aperçu visuel
+      const scaleForExport = 3
+      const outW = Math.round(frameW * scaleForExport)
+      const outH = Math.round(frameH * scaleForExport)
+      finalCanvas.width = outW
+      finalCanvas.height = outH
       const finalCtx = finalCanvas.getContext('2d')
       if (!finalCtx) return
 
-      finalCtx.clearRect(0, 0, frameW, frameH)
+      finalCtx.clearRect(0, 0, outW, outH)
       finalCtx.drawImage(
         tempCanvas,
         frameX,
@@ -198,11 +202,11 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
         frameH,
         0,
         0,
-        frameW,
-        frameH
+        outW,
+        outH
       )
 
-      const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9)
+      const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95)
       onConfirm(dataUrl)
     }
   }
@@ -231,13 +235,6 @@ export default function CardCropperModal({ image, onCancel, onConfirm }: CardCro
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        <div className="px-6 pt-4 pb-3 space-y-2 bg-gradient-to-b from-cream-50 to-cream-100 border-b border-cream-200">
-          <p className="text-xs text-forest-700">
-            Fais glisser la photo pour la déplacer. Zoome avec tes doigts (mobile) ou la molette / le
-            trackpad (ordinateur). Aligne ta carte avec le cadre : tout ce qui dépasse sera coupé.
-          </p>
         </div>
 
         <div className="px-6 pb-5 pt-4 bg-cream-50">

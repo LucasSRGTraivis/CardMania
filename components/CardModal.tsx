@@ -66,7 +66,7 @@ export default function CardModal({
       const url = URL.createObjectURL(file)
       img.onload = () => {
         URL.revokeObjectURL(url)
-        const MAX_SIZE = 1200
+        const MAX_SIZE = 1600
         let { width, height } = img
         if (width > MAX_SIZE || height > MAX_SIZE) {
           if (width > height) {
@@ -86,7 +86,7 @@ export default function CardModal({
           return
         }
         ctx.drawImage(img, 0, 0, width, height)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
         resolve(dataUrl)
       }
       img.onerror = () => {

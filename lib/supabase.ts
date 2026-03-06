@@ -27,6 +27,7 @@ export type Card = {
 export type Profile = {
   id: string
   email: string
+  username: string
   full_name?: string
   avatar_url?: string
   created_at: string
