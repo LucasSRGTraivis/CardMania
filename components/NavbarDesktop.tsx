@@ -30,11 +30,6 @@ export default function NavbarDesktop({ userEmail, onLogout }: NavbarDesktopProp
           </div>
 
           <div className="flex items-center gap-4">
-            {userEmail && (
-              <span className="text-sm text-forest-700 truncate max-w-xs">
-                {userEmail}
-              </span>
-            )}
             <button
               type="button"
               onClick={onLogout}

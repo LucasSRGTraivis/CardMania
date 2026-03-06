@@ -22,22 +22,6 @@ export default function LoginPage() {
       setError(null)
 
       if (isSignUp) {
-        // Vérifier que le nom d'utilisateur n'est pas déjà pris
-        const { data: existing, error: existingError } = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('username', username)
-          .maybeSingle()
-
-        if (existingError) {
-          console.error('[Auth][Username][Signup] Check existing error', existingError)
-        }
-
-        if (existing) {
-          setError("Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.")
-          return
-        }
-
         // On génère un email interne basé sur le username, uniquement pour Supabase Auth
         const internalEmail = `${username}@cardmania.local`
 
@@ -51,7 +35,15 @@ export default function LoginPage() {
           },
         })
         console.log('[Auth][Username][Signup] Result', { data, error })
-        if (error) throw error
+        if (error) {
+          // Si la contrainte d'unicité sur username renvoie une erreur SQL,
+          // on affiche un message plus clair.
+          if (String(error.message).toLowerCase().includes('duplicate') || String(error.message).toLowerCase().includes('unique')) {
+            setError("Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.")
+            return
+          }
+          throw error
+        }
 
         if (data.session) {
           console.log('[Auth][Username][Signup] Session active, redirect to /dashboard')
@@ -61,25 +53,25 @@ export default function LoginPage() {
           setError("Compte créé. Si nécessaire, vérifiez l'email associé à votre compte.")
         }
       } else {
-        // Connexion : on récupère d'abord l'email associé à ce username
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('email')
-          .ilike('username', username)
-          .maybeSingle()
+        // Connexion : on récupère d'abord l'email associé à ce username via une fonction SQL
+        const { data: emailResult, error: emailError } = await supabase.rpc('get_email_for_username', {
+          p_username: username,
+        })
 
-        if (profileError) {
-          console.error('[Auth][Username][Login] Lookup error', profileError)
-          throw profileError
+        if (emailError) {
+          console.error('[Auth][Username][Login] Lookup error', emailError)
+          throw emailError
         }
 
-        if (!profile) {
+        const resolvedEmail = typeof emailResult === 'string' ? emailResult : (emailResult as any)?.email
+
+        if (!resolvedEmail) {
           setError("Nom d'utilisateur ou mot de passe incorrect.")
           return
         }
 
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: profile.email,
+          email: resolvedEmail,
           password,
         })
         console.log('[Auth][Username][Login] Result', { data, error })
@@ -147,7 +139,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-                  placeholder="Votre pseudo (ex : Pikachu42)"
+                  placeholder="Votre pseudo"
                 />
               </div>
 
@@ -188,12 +180,6 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="text-center text-sm text-forest-600">
-              <p>
-                En vous connectant, vous acceptez nos conditions d&apos;utilisation
-                et notre politique de confidentialité.
-              </p>
-            </div>
           </div>
         </div>
       </div>
