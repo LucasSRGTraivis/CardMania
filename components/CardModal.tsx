@@ -22,6 +22,7 @@ export default function CardModal({
   const [serie, setSerie] = useState('')
   const [purchasePrice, setPurchasePrice] = useState('')
   const [cardType, setCardType] = useState<'pokemon' | 'topps'>('pokemon')
+  const [club, setClub] = useState('')
   const [isSigned, setIsSigned] = useState(false)
   const [isNumbered, setIsNumbered] = useState(false)
   const [numbering, setNumbering] = useState('')
@@ -39,6 +40,7 @@ export default function CardModal({
       setSerie(card.series)
       setPurchasePrice(card.purchase_price != null ? String(card.purchase_price) : '')
       setCardType(card.card_type)
+      setClub(card.club ?? '')
       setIsSigned(card.is_signed)
       setIsNumbered(card.is_numbered)
       setNumbering(card.numbering || '')
@@ -124,6 +126,7 @@ export default function CardModal({
       name,
       series: serie,
       card_type: cardType,
+      club: cardType === 'topps' && club.trim() ? club.trim() : null,
       purchase_price: purchasePrice ? parseFloat(purchasePrice.replace(',', '.')) : 0,
       purchase_date: purchaseDate || null,
       is_signed: isSigned,
@@ -192,7 +195,7 @@ export default function CardModal({
                     : 'bg-cream-50 text-forest-800 border-cream-200'
                 }`}
               >
-                Topps
+                Topps / Panini
               </button>
             </div>
 
@@ -255,8 +258,20 @@ export default function CardModal({
             {cardType === 'topps' && (
               <div className="space-y-3 border border-cream-200 rounded-xl p-4 bg-cream-50">
                 <p className="text-sm font-semibold text-forest-900 mb-1">
-                  Détails Topps
+                  Détails
                 </p>
+                <div>
+                  <label className="block text-xs font-semibold text-forest-900 mb-1">
+                    Club
+                  </label>
+                  <input
+                    type="text"
+                    value={club}
+                    onChange={(e) => setClub(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-cream-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sm"
+                    placeholder="Ex: Marseille, PSG, Real Madrid..."
+                  />
+                </div>
                 <label className="flex items-center gap-2 text-sm text-forest-800">
                   <input
                     type="checkbox"

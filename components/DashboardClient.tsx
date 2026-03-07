@@ -18,7 +18,7 @@ interface DashboardClientProps {
   initialCards: Card[]
 }
 
-type SortMode = 'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'
+type SortMode = 'date_desc' | 'date_asc' | 'price_desc' | 'price_asc' | 'numbering_asc' | 'numbering_desc' | 'club'
 
 export default function DashboardClient({ user, initialCards }: DashboardClientProps) {
   const [cards, setCards] = useState<Card[]>(initialCards)
@@ -34,6 +34,12 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [isSortOverlayOpen, setIsSortOverlayOpen] = useState(false)
   const [cardIdToDelete, setCardIdToDelete] = useState<string | null>(null)
   const router = useRouter()
+
+  const parseNumberingTotal = (numbering: string | null): number | null => {
+    if (!numbering?.trim()) return null
+    const match = numbering.trim().match(/\/\s*(\d+)\s*$/)
+    return match ? parseInt(match[1], 10) : null
+  }
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [openCameraOnNextModal, setOpenCameraOnNextModal] = useState(false)
@@ -102,7 +108,9 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(card =>
         card.name.toLowerCase().includes(term) ||
-        card.series.toLowerCase().includes(term)
+        card.series.toLowerCase().includes(term) ||
+        (card.club && card.club.toLowerCase().includes(term)) ||
+        (card.numbering && card.numbering.toLowerCase().includes(term))
       )
     }
 
@@ -113,7 +121,28 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         return sortMode === 'price_desc' ? pb - pa : pa - pb
       }
 
-      // tri par date
+      if (sortMode === 'numbering_asc' || sortMode === 'numbering_desc') {
+        const na = parseNumberingTotal(a.numbering)
+        const nb = parseNumberingTotal(b.numbering)
+        const hasA = na != null
+        const hasB = nb != null
+        if (!hasA && !hasB) return 0
+        if (!hasA) return 1
+        if (!hasB) return -1
+        return sortMode === 'numbering_asc' ? na - nb : nb - na
+      }
+
+      if (sortMode === 'club') {
+        const clubA = (a.club?.trim() ?? '').toLowerCase()
+        const clubB = (b.club?.trim() ?? '').toLowerCase()
+        const hasA = clubA.length > 0
+        const hasB = clubB.length > 0
+        if (!hasA && !hasB) return 0
+        if (!hasA) return 1
+        if (!hasB) return -1
+        return clubA.localeCompare(clubB)
+      }
+
       const da = getPurchaseDate(a)?.getTime() ?? 0
       const db = getPurchaseDate(b)?.getTime() ?? 0
       return sortMode === 'date_desc' ? db - da : da - db
@@ -385,12 +414,14 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
               onEdit={handleEditCard} 
               onDelete={requestDeleteCard}
               onPreview={(card) => setPreviewCard(card)}
+              groupByClub={sortMode === 'club'}
             />
           ) : (
             <CardList 
               cards={filteredCards} 
               onEdit={handleEditCard} 
-              onDelete={requestDeleteCard} 
+              onDelete={requestDeleteCard}
+              groupByClub={sortMode === 'club'}
             />
           )}
         </div>
@@ -402,12 +433,12 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           onClick={() => setIsSortOverlayOpen(false)}
         >
           <div
-            className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 border border-cream-200 panel-slide-up-soft"
+            className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 border border-cream-200 panel-slide-up-soft max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-forest-900">
-                Trier les cartes
+                Filtrer et trier
               </h2>
               <button
                 type="button"
@@ -424,6 +455,9 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
                 { value: 'date_asc', label: "Date d'achat : plus anciennes" },
                 { value: 'price_desc', label: 'Prix : du plus cher au moins cher' },
                 { value: 'price_asc', label: 'Prix : du moins cher au plus cher' },
+                { value: 'numbering_asc', label: 'Numérotation : du plus petit au plus grand' },
+                { value: 'numbering_desc', label: 'Numérotation : du plus grand au plus petit' },
+                { value: 'club', label: 'Par club' },
               ] as { value: SortMode; label: string }[]).map((option) => (
                 <button
                   key={option.value}
@@ -499,7 +533,12 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
             <div className="flex items-end justify-between gap-4 max-w-lg mx-auto">
               <div className="text-white min-w-0">
                 <p className="font-semibold text-lg truncate">{previewCard.name}</p>
-                <p className="text-sm text-white/70 truncate">{previewCard.series}</p>
+                <p className="text-sm text-white/70 truncate">
+                  {previewCard.series}
+                  {previewCard.card_type === 'topps' && previewCard.club?.trim() && (
+                    <span className="text-white/90"> • {previewCard.club.trim()}</span>
+                  )}
+                </p>
               </div>
               <div className="flex gap-2 shrink-0">
                 <button

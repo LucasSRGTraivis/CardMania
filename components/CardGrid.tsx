@@ -9,17 +9,38 @@ interface CardGridProps {
   onEdit: (card: Card) => void
   onDelete: (cardId: string) => void
   onPreview: (card: Card) => void
+  groupByClub?: boolean
 }
 
-export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGridProps) {
+export default function CardGrid({ cards, onEdit, onDelete, onPreview, groupByClub }: CardGridProps) {
   const getPrice = (card: Card): number | null => {
     if (card.purchase_price == null) return null
     return Number(card.purchase_price)
   }
 
+  const groups: { clubLabel: string; cards: Card[] }[] = groupByClub
+    ? (() => {
+        const map = new Map<string, Card[]>()
+        for (const card of cards) {
+          const label = card.club?.trim() || 'Sans club'
+          if (!map.has(label)) map.set(label, [])
+          map.get(label)!.push(card)
+        }
+        return Array.from(map.entries())
+          .sort(([a], [b]) => (a === 'Sans club' ? 1 : b === 'Sans club' ? -1 : a.localeCompare(b)))
+          .map(([clubLabel, cardsInGroup]) => ({ clubLabel, cards: cardsInGroup }))
+      })()
+    : [{ clubLabel: '', cards }]
+
   return (
-    <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
-      {cards.map((card) => (
+    <div className="space-y-6">
+      {groups.map(({ clubLabel, cards: groupCards }) => (
+        <div key={clubLabel || 'all'}>
+          {groupByClub && (
+            <h3 className="text-sm font-semibold text-forest-900 mb-3 px-0.5">{clubLabel}</h3>
+          )}
+          <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
+            {groupCards.map((card) => (
         <div
           key={card.id}
           className="bg-white/80 backdrop-blur-sm rounded-1px shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-cream-200 group cursor-pointer"
@@ -72,7 +93,12 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
               <div className="w-full bg-gradient-to-t from-black/80 via-black/60 to-transparent px-3 py-3 space-y-1 text-xs text-white">
                 <div>
                   <p className="font-semibold truncate">{card.name}</p>
-                  <p className="text-[11px] text-white/80 truncate">{card.series}</p>
+                  <p className="text-[11px] text-white/80 truncate">
+                    {card.series}
+                    {card.card_type === 'topps' && card.club?.trim() && (
+                      <span className="text-white/90"> • {card.club.trim()}</span>
+                    )}
+                  </p>
                 </div>
 
                 {(() => {
@@ -80,7 +106,7 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
                   if (card.card_type === 'pokemon') chips.push('Pokémon')
                   if (card.card_type === 'topps') chips.push('Topps')
                   if (card.is_signed) chips.push('Signée')
-                  if (card.is_numbered) chips.push(card.numbering ? `Numérotée ${card.numbering}` : 'Numérotée')
+                  if (card.is_numbered) chips.push(card.numbering ? `${card.numbering}` : 'Numérotée')
                   if (card.is_special) chips.push('Spéciale')
                   if (chips.length === 0) return null
                   return (
@@ -129,6 +155,9 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview }: CardGri
           </div>
 
           {/* Plus de texte permanent sous la carte : on garde uniquement le visuel */}
+        </div>
+      ))}
+          </div>
         </div>
       ))}
     </div>

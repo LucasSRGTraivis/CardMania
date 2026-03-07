@@ -11,6 +11,7 @@ export type Card = {
   name: string
   series: string
   card_type: 'pokemon' | 'topps'
+  club?: string | null
   purchase_price: number
   purchase_date: string | null
   is_signed: boolean
