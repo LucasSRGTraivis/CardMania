@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { LayoutGrid, Heart, Plus, Search, Users } from 'lucide-react'
 
 interface NavbarMobileProps {
@@ -14,9 +14,24 @@ export default function NavbarMobile({
 }: NavbarMobileProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const activeFriendId = searchParams.get('friend')
+  const activeFriendName = searchParams.get('friendName')
+
+  const buildHref = (base: string) => {
+    if (!activeFriendId) return base
+    const params = new URLSearchParams()
+    params.set('friend', activeFriendId)
+    if (activeFriendName) params.set('friendName', activeFriendName)
+    return `${base}?${params.toString()}`
+  }
 
   const onDashboard = pathname?.startsWith('/dashboard')
   const onWishlist = pathname === '/souhaits'
+
+  const dashboardHref = buildHref('/dashboard')
+  const wishlistHref = buildHref('/souhaits')
 
   return (
     <nav className="md:hidden fixed bottom-4 inset-x-0 z-40 flex justify-center">
@@ -25,7 +40,7 @@ export default function NavbarMobile({
           <div className="flex items-end justify-between text-forest-600/60 text-[11px] font-medium">
             {/* Collection */}
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push(dashboardHref)}
               className="flex flex-col items-center gap-1 min-w-[3.5rem]"
             >
               <div
@@ -48,7 +63,7 @@ export default function NavbarMobile({
 
             {/* Souhaits */}
             <button
-              onClick={() => router.push('/souhaits')}
+              onClick={() => router.push(wishlistHref)}
               className="flex flex-col items-center gap-1 min-w-[3.5rem]"
             >
               <div

@@ -223,11 +223,11 @@ export default function WishlistClient() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-forest-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Rechercher dans tes souhaits..."
+                placeholder="Rechercher"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 ref={searchInputRef}
-                className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                className="w-full pl-4 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               />
             </div>
           </div>
