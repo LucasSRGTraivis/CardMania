@@ -1,7 +1,10 @@
-'use client'
-
+import { Suspense } from 'react'
 import DashboardClient from '@/components/DashboardClient'
 
 export default function DashboardPage() {
-  return <DashboardClient user={null as any} initialCards={[]} />
+  return (
+    <Suspense fallback={null}>
+      <DashboardClient user={null as any} initialCards={[]} />
+    </Suspense>
+  )
 }
