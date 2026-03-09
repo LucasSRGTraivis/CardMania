@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import type { Card } from '@/lib/supabase'
 import { Search, Edit, Trash2, Grid, List, Plus, SlidersHorizontal, Trash2 as TrashIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import CardModal from './CardModal'
 import CardGrid from './CardGrid'
 import CardList from './CardList'
@@ -34,6 +34,9 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [isSortOverlayOpen, setIsSortOverlayOpen] = useState(false)
   const [cardIdToDelete, setCardIdToDelete] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const friendIdParam = searchParams.get('friend')
+  const friendNameParam = searchParams.get('friendName')
 
   const parseNumberingTotal = (numbering: string | null): number | null => {
     if (!numbering?.trim()) return null
@@ -43,12 +46,14 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [openCameraOnNextModal, setOpenCameraOnNextModal] = useState(false)
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAuthAndLoad = async () => {
-      console.log('[Dashboard] Check auth')
-      const { data: { user: supaUser }, error } = await supabase.auth.getUser()
-      console.log('[Dashboard] Auth result', { user: supaUser, error })
+      const {
+        data: { user: supaUser },
+      } = await supabase.auth.getUser()
+
       if (!supaUser) {
         router.push('/auth/login')
         return
@@ -56,26 +61,27 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
       setCurrentUser(supaUser)
 
-      if (initialCards.length === 0) {
-        const { data: cardsData, error: cardsError } = await supabase
-          .from('cards')
-          .select('*')
-          .eq('user_id', supaUser.id)
-          .order('created_at', { ascending: false })
+      const targetUserId =
+        friendIdParam && friendIdParam !== supaUser.id ? friendIdParam : supaUser.id
 
-        console.log('[Dashboard] Cards fetch', { cardsError, count: cardsData?.length })
-        if (!cardsError && cardsData) {
-          setCards(cardsData)
-          setFilteredCards(cardsData)
-        }
+      setViewingUserId(targetUserId)
+
+      const { data: cardsData, error: cardsError } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: false })
+
+      if (!cardsError && cardsData) {
+        setCards(cardsData)
+        setFilteredCards(cardsData)
       }
 
       setLoadingUser(false)
     }
 
     checkAuthAndLoad()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [friendIdParam, router])
 
   useEffect(() => {
     const updateIsMobile = () => {
@@ -157,6 +163,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   }
 
   const handleAddCard = () => {
+    if (isFriendView) return
     setSelectedCard(null)
     if (isMobile) {
       setOpenCameraOnNextModal(true)
@@ -165,15 +172,18 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   }
 
   const handleEditCard = (card: Card) => {
+    if (isFriendView) return
     setSelectedCard(card)
     setIsModalOpen(true)
   }
 
   const requestDeleteCard = (cardId: string) => {
+    if (isFriendView) return
     setCardIdToDelete(cardId)
   }
 
   const performDeleteCard = async (cardId: string) => {
+    if (isFriendView) return
     const { error } = await supabase
       .from('cards')
       .delete()
@@ -189,6 +199,8 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       console.warn('[Dashboard] handleSaveCard called without user')
       return
     }
+
+    if (isFriendView) return
 
       if (selectedCard) {
       const { data, error } = await supabase
@@ -251,26 +263,11 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const totalCards = cards.reduce((sum, card) => sum + (card.quantity || 1), 0)
   const totalSpent = cards.reduce((sum, card) => sum + computeCardTotalPrice(card), 0)
   const averagePrice = totalCards > 0 ? totalSpent / totalCards : 0
-
-  if (loadingUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-cream-100 to-forest-50">
-        <div className="text-center space-y-4">
-          <div className="w-90 h-90 mx-auto flex items-center justify-center">
-            <Image
-              src="/assets/Logo.png"
-              alt="CardMania"
-              width={300}
-              height={300}
-              className="object-contain"
-              priority
-            />
-          </div>
-          <p className="text-forest-700 font-medium">Chargement de votre collection...</p>
-        </div>
-      </div>
-    )
-  }
+  const username =
+    (currentUser as any)?.user_metadata?.username ??
+    (currentUser as any)?.email?.split?.('@')?.[0]
+  const isFriendView =
+    viewingUserId !== null && currentUser && viewingUserId !== currentUser.id
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100 to-forest-50">
@@ -296,32 +293,66 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-24 pb-28">
+        {isFriendView && (
+          <div className="mb-4 rounded-xl bg-forest-900 text-cream-50 px-4 py-3 flex items-center justify-between text-sm">
+            <span>
+              Tu consultes la collection de{' '}
+              <span className="font-semibold">
+                {friendNameParam || 'ton ami'}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard')}
+              className="ml-3 inline-flex items-center px-3 py-1.5 rounded-full bg-cream-50 text-forest-900 text-xs font-semibold hover:bg-cream-100"
+            >
+              Quitter cette vue
+            </button>
+          </div>
+        )}
         <div className="mb-8">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-cream-200">
-            <div className="grid grid-cols-3 gap-2 sm:gap-4">
-              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-forest-50 to-forest-100 rounded-xl">
-                <p className="text-xl sm:text-3xl font-bold text-forest-900 tabular-nums">{cards.length}</p>
-                <p className="text-[11px] sm:text-sm text-forest-600 leading-tight mt-0.5">
-                  <span className="sm:hidden">Cartes</span>
-                  <span className="hidden sm:inline">Cartes dans la collection</span>
-                </p>
+            {loadingUser ? (
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 animate-pulse">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
+                  <div className="h-6 sm:h-8 bg-cream-300 rounded mb-2" />
+                  <div className="h-3 bg-cream-200 rounded w-3/4 mx-auto" />
+                </div>
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
+                  <div className="h-6 sm:h-8 bg-cream-300 rounded mb-2" />
+                  <div className="h-3 bg-cream-200 rounded w-3/4 mx-auto" />
+                </div>
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
+                  <div className="h-6 sm:h-8 bg-cream-300 rounded mb-2" />
+                  <div className="h-3 bg-cream-200 rounded w-3/4 mx-auto" />
+                </div>
               </div>
-              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
-                <p className="text-sm sm:text-3xl font-bold text-forest-900 tabular-nums truncate">
-                  {totalSpent.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-[11px] sm:text-sm text-forest-600 leading-tight mt-0.5">Total dépensé</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-forest-50 to-forest-100 rounded-xl">
+                  <p className="text-xl sm:text-3xl font-bold text-forest-900 tabular-nums">{cards.length}</p>
+                  <p className="text-[11px] sm:text-sm text-forest-600 leading-tight mt-0.5">
+                    <span className="sm:hidden">Cartes</span>
+                    <span className="hidden sm:inline">Cartes dans la collection</span>
+                  </p>
+                </div>
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cream-100 to-cream-200 rounded-xl">
+                  <p className="text-sm sm:text-3xl font-bold text-forest-900 tabular-nums truncate">
+                    {totalSpent.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[11px] sm:text-sm text-forest-600 leading-tight mt-0.5">Total dépensé</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-forest-100 to-cream-100 rounded-xl">
+                  <p className="text-sm sm:text-3xl font-bold text-forest-900 tabular-nums truncate">
+                    {averagePrice.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[11px] sm:text-sm text-forest-600 leading-tight mt-0.5">
+                    <span className="sm:hidden">Prix moyen</span>
+                    <span className="hidden sm:inline">Prix moyen par carte</span>
+                  </p>
+                </div>
               </div>
-              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-forest-100 to-cream-100 rounded-xl">
-                <p className="text-sm sm:text-3xl font-bold text-forest-900 tabular-nums truncate">
-                  {averagePrice.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-[11px] sm:text-sm text-forest-600 leading-tight mt-0.5">
-                  <span className="sm:hidden">Prix moyen</span>
-                  <span className="hidden sm:inline">Prix moyen par carte</span>
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -349,6 +380,30 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
                 <SlidersHorizontal className="w-5 h-5" />
               </button>
 
+              {/* Vue grille / liste (mobile) */}
+              <div className="flex md:hidden bg-white/80 backdrop-blur-sm border border-cream-200 rounded-full overflow-hidden">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 text-xs ${
+                    viewMode === 'grid'
+                      ? 'bg-forest-500 text-white'
+                      : 'text-forest-600 hover:bg-cream-100'
+                  } transition-colors`}
+                >
+                  <Grid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-2 text-xs ${
+                    viewMode === 'list'
+                      ? 'bg-forest-500 text-white'
+                      : 'text-forest-600 hover:bg-cream-100'
+                  } transition-colors`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+
               <div className="hidden md:flex bg-white/80 backdrop-blur-sm border border-cream-200 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -364,13 +419,15 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
                 </button>
               </div>
 
-              <button
-                onClick={handleAddCard}
-                className="hidden md:flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="hidden sm:inline">Ajouter</span>
-              </button>
+              {!isFriendView && (
+                <button
+                  onClick={handleAddCard}
+                  className="hidden md:flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="hidden sm:inline">Ajouter</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -379,7 +436,20 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
           key={`${viewMode}-${sortMode}-${searchTerm}-${filteredCards.length}`}
           className="fade-soft"
         >
-          {filteredCards.length === 0 ? (
+          {loadingUser ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md border border-cream-200 p-3 animate-pulse"
+                >
+                  <div className="aspect-[5/7] rounded-xl bg-cream-200 mb-3" />
+                  <div className="h-3 bg-cream-300 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-cream-200 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : filteredCards.length === 0 ? (
             <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-cream-200">
               <div className="flex justify-center mb-4">
                 <Image
@@ -391,14 +461,20 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
                 />
               </div>
               <h3 className="text-2xl font-semibold text-forest-900 mb-2">
-                {searchTerm ? 'Aucune carte trouvée' : 'Aucune carte dans ta collection'}
+                {searchTerm
+                  ? 'Aucune carte trouvée'
+                  : isFriendView
+                    ? 'Aucune carte dans cette collection'
+                    : 'Aucune carte dans ta collection'}
               </h3>
               <p className="text-forest-600 mb-6">
                 {searchTerm 
                   ? 'Essaie de modifier tes filtres de recherche' 
-                  : 'Ajoute ta première carte coup de cœur (Pokémon, Topps, etc.)'}
+                  : isFriendView
+                    ? 'Ton ami n’a pas encore ajouté de cartes.'
+                    : 'Ajoute ta première carte coup de cœur (Pokémon, Topps, etc.)'}
               </p>
-              {!searchTerm && (
+              {!searchTerm && !isFriendView && (
                 <button
                   onClick={handleAddCard}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-forest-500 to-forest-600 hover:from-forest-600 hover:to-forest-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
@@ -415,6 +491,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
               onDelete={requestDeleteCard}
               onPreview={(card) => setPreviewCard(card)}
               groupByClub={sortMode === 'club'}
+              readOnly={isFriendView}
             />
           ) : (
             <CardList 
@@ -422,6 +499,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
               onEdit={handleEditCard} 
               onDelete={requestDeleteCard}
               groupByClub={sortMode === 'club'}
+              readOnly={isFriendView}
             />
           )}
         </div>
@@ -589,19 +667,17 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       {!isModalOpen && !previewCard && !isSortOverlayOpen && (
         <>
           <NavbarDesktop
-            userEmail={currentUser?.email}
+            userName={username}
+            userId={currentUser?.id}
             onLogout={handleLogout}
           />
 
           <NavbarMobile
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            onAddCard={handleAddCard}
+            onAdd={handleAddCard}
             onSearch={() => {
               window.scrollTo({ top: 0, behavior: 'smooth' })
               setTimeout(() => searchInputRef.current?.focus(), 300)
             }}
-            onLogout={handleLogout}
           />
         </>
       )}

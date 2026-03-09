@@ -9,6 +9,7 @@ interface CardListProps {
   onEdit: (card: Card) => void
   onDelete: (cardId: string) => void
   groupByClub?: boolean
+  readOnly?: boolean
 }
 
 function CardRow({
@@ -16,11 +17,13 @@ function CardRow({
   onEdit,
   onDelete,
   getPrice,
+  readOnly,
 }: {
   card: Card
   onEdit: (card: Card) => void
   onDelete: (cardId: string) => void
   getPrice: (card: Card) => number | null
+  readOnly?: boolean
 }) {
   const price = getPrice(card)
   const priceLabel =
@@ -70,28 +73,30 @@ function CardRow({
             </>
           )}
         </div>
-        <div className="flex gap-1.5 pt-1">
-          <button
-            onClick={() => onEdit(card)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-forest-100 text-forest-900 text-[10px] font-medium hover:bg-forest-200 transition-colors"
-          >
-            <Edit className="w-3 h-3 shrink-0" />
-            Modifier
-          </button>
-          <button
-            onClick={() => onDelete(card.id)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-red-100 text-red-700 text-[10px] font-medium hover:bg-red-200 transition-colors"
-          >
-            <Trash2 className="w-3 h-3 shrink-0" />
-            Supprimer
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex gap-1.5 pt-1">
+            <button
+              onClick={() => onEdit(card)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-forest-100 text-forest-900 text-[10px] font-medium hover:bg-forest-200 transition-colors"
+            >
+              <Edit className="w-3 h-3 shrink-0" />
+              Modifier
+            </button>
+            <button
+              onClick={() => onDelete(card.id)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-red-100 text-red-700 text-[10px] font-medium hover:bg-red-200 transition-colors"
+            >
+              <Trash2 className="w-3 h-3 shrink-0" />
+              Supprimer
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-export default function CardList({ cards, onEdit, onDelete, groupByClub }: CardListProps) {
+export default function CardList({ cards, onEdit, onDelete, groupByClub, readOnly }: CardListProps) {
   const getPrice = (card: Card): number | null => {
     if (card.purchase_price == null) return null
     return Number(card.purchase_price)
@@ -123,7 +128,14 @@ export default function CardList({ cards, onEdit, onDelete, groupByClub }: CardL
               </div>
             )}
             {groupCards.map((card) => (
-              <CardRow key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} getPrice={getPrice} />
+              <CardRow
+                key={card.id}
+                card={card}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                getPrice={getPrice}
+                readOnly={readOnly}
+              />
             ))}
           </div>
         ))}
@@ -138,7 +150,9 @@ export default function CardList({ cards, onEdit, onDelete, groupByClub }: CardL
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Type</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Prix</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-forest-900">Date d&apos;achat</th>
-              <th className="px-6 py-4 text-right text-sm font-semibold text-forest-900">Actions</th>
+              {!readOnly && (
+                <th className="px-6 py-4 text-right text-sm font-semibold text-forest-900">Actions</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-cream-200">
@@ -194,24 +208,26 @@ export default function CardList({ cards, onEdit, onDelete, groupByClub }: CardL
                         })
                       })()}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => onEdit(card)}
-                          className="p-2 bg-forest-100 hover:bg-forest-200 text-forest-900 rounded-lg transition-colors"
-                          title="Modifier"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDelete(card.id)}
-                          className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {!readOnly && (
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => onEdit(card)}
+                            className="p-2 bg-forest-100 hover:bg-forest-200 text-forest-900 rounded-lg transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(card.id)}
+                            className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </Fragment>

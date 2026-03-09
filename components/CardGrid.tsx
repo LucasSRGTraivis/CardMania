@@ -10,9 +10,10 @@ interface CardGridProps {
   onDelete: (cardId: string) => void
   onPreview: (card: Card) => void
   groupByClub?: boolean
+  readOnly?: boolean
 }
 
-export default function CardGrid({ cards, onEdit, onDelete, onPreview, groupByClub }: CardGridProps) {
+export default function CardGrid({ cards, onEdit, onDelete, onPreview, groupByClub, readOnly }: CardGridProps) {
   const getPrice = (card: Card): number | null => {
     if (card.purchase_price == null) return null
     return Number(card.purchase_price)
@@ -63,30 +64,32 @@ export default function CardGrid({ cards, onEdit, onDelete, onPreview, groupByCl
               />
             )}
             {/* Icônes édition / suppression (haut droite, seulement au survol) */}
-            <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit(card)
-                }}
-                className="p-1.5 rounded-full bg-white/90 text-forest-900 hover:bg-forest-100 active:bg-forest-200 shadow"
-                title="Modifier"
-              >
-                <Edit className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(card.id)
-                }}
-                className="p-1.5 rounded-full bg-white/90 text-red-700 hover:bg-red-100 active:bg-red-200 shadow"
-                title="Supprimer"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(card)
+                  }}
+                  className="p-1.5 rounded-full bg-white/90 text-forest-900 hover:bg-forest-100 active:bg-forest-200 shadow"
+                  title="Modifier"
+                >
+                  <Edit className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(card.id)
+                  }}
+                  className="p-1.5 rounded-full bg-white/90 text-red-700 hover:bg-red-100 active:bg-red-200 shadow"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            )}
 
             {/* Overlay infos au survol */}
             <div className="absolute inset-0 flex items-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
