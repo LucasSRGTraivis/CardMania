@@ -19,6 +19,8 @@ interface DashboardClientProps {
 }
 
 type SortMode = 'date_desc' | 'date_asc' | 'price_desc' | 'price_asc' | 'numbering_asc' | 'numbering_desc' | 'club'
+const CARD_LIST_SELECT = 'id,user_id,name,series,card_type,club,purchase_price,purchase_date,is_signed,is_numbered,numbering,is_special,quantity,main_image_url,created_at,updated_at'
+const CARD_DETAILS_SELECT = `${CARD_LIST_SELECT},images`
 
 export default function DashboardClient({ user, initialCards }: DashboardClientProps) {
   const [cards, setCards] = useState<Card[]>(initialCards)
@@ -104,7 +106,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
       const { data: cardsData, error: cardsError } = await withTimeout(
         supabase
           .from('cards')
-          .select('*')
+          .select(CARD_LIST_SELECT)
           .eq('user_id', targetUserId)
           .order('created_at', { ascending: false }),
         12000,
@@ -121,8 +123,12 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         })
         setLoadError(cardsError.message ?? "Impossible de charger tes cartes.")
       } else if (cardsData) {
-        setCards(cardsData)
-        setFilteredCards(cardsData)
+        const normalizedCards = (cardsData as Card[]).map((card) => ({
+          ...card,
+          images: card.images ?? null,
+        }))
+        setCards(normalizedCards)
+        setFilteredCards(normalizedCards)
       }
 
       setLoadingUser(false)
@@ -220,9 +226,20 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
     setIsModalOpen(true)
   }
 
-  const handleEditCard = (card: Card) => {
+  const handleEditCard = async (card: Card) => {
     if (isFriendView) return
-    setSelectedCard(card)
+    const { data: fullCard, error } = await supabase
+      .from('cards')
+      .select(CARD_DETAILS_SELECT)
+      .eq('id', card.id)
+      .maybeSingle()
+
+    if (error || !fullCard) {
+      setSelectedCard(card)
+    } else {
+      setSelectedCard(fullCard as Card)
+    }
+
     setIsModalOpen(true)
   }
 
