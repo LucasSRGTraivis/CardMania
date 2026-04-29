@@ -49,13 +49,13 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [openCameraOnNextModal, setOpenCameraOnNextModal] = useState(false)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null)
 
-  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
+  const withTimeout = <T,>(promise: PromiseLike<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
     return new Promise<T>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error(timeoutMessage))
       }, timeoutMs)
 
-      promise
+      Promise.resolve(promise)
         .then((value) => {
           clearTimeout(timeoutId)
           resolve(value)
