@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import type { Card } from '@/lib/supabase'
@@ -31,6 +31,7 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [sortMode, setSortMode] = useState<SortMode>('date_desc')
   const [loadingUser, setLoadingUser] = useState(true)
   const [currentUser, setCurrentUser] = useState<any | null>(user ?? null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isSortOverlayOpen, setIsSortOverlayOpen] = useState(false)
   const [cardIdToDelete, setCardIdToDelete] = useState<string | null>(null)
   const router = useRouter()
@@ -48,11 +49,45 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
   const [openCameraOnNextModal, setOpenCameraOnNextModal] = useState(false)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    const checkAuthAndLoad = async () => {
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(timeoutMessage))
+      }, timeoutMs)
+
+      promise
+        .then((value) => {
+          clearTimeout(timeoutId)
+          resolve(value)
+        })
+        .catch((error) => {
+          clearTimeout(timeoutId)
+          reject(error)
+        })
+    })
+  }
+
+  const loadCards = useCallback(async () => {
+      // Evite l'impression de "page figée" sur mobile quand le réseau est lent.
+      setLoadError(null)
+      setLoadingUser(true)
+
       const {
-        data: { user: supaUser },
-      } = await supabase.auth.getUser()
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      let supaUser = session?.user ?? null
+
+      if (!supaUser) {
+        const {
+          data: { user },
+        } = await withTimeout(
+          supabase.auth.getUser(),
+          8000,
+          "La session met trop de temps a se verifier. Reessaye."
+        )
+        supaUser = user
+      }
 
       if (!supaUser) {
         router.push('/auth/login')
@@ -66,22 +101,36 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
 
       setViewingUserId(targetUserId)
 
-      const { data: cardsData, error: cardsError } = await supabase
-        .from('cards')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .order('created_at', { ascending: false })
+      const { data: cardsData, error: cardsError } = await withTimeout(
+        supabase
+          .from('cards')
+          .select('*')
+          .eq('user_id', targetUserId)
+          .order('created_at', { ascending: false }),
+        12000,
+        "Le chargement des cartes est trop long. Verifie ta connexion puis reessaye."
+      )
 
-      if (!cardsError && cardsData) {
+      if (cardsError) {
+        console.error('[Dashboard] Error loading cards', {
+          message: cardsError.message,
+          code: cardsError.code,
+          details: cardsError.details,
+          hint: cardsError.hint,
+          targetUserId,
+        })
+        setLoadError(cardsError.message ?? "Impossible de charger tes cartes.")
+      } else if (cardsData) {
         setCards(cardsData)
         setFilteredCards(cardsData)
       }
 
       setLoadingUser(false)
-    }
+    }, [friendIdParam, router])
 
-    checkAuthAndLoad()
-  }, [friendIdParam, router])
+  useEffect(() => {
+    loadCards()
+  }, [loadCards])
 
   useEffect(() => {
     const updateIsMobile = () => {
@@ -357,6 +406,21 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
         </div>
 
         <div className="mb-6 space-y-4">
+          {loadError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center justify-between gap-3">
+              <p className="text-sm text-red-700">
+                Erreur de chargement des cartes: {loadError}
+              </p>
+              <button
+                type="button"
+                onClick={() => loadCards()}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700"
+              >
+                Reessayer
+              </button>
+            </div>
+          )}
+
           <div className="flex gap-3 items-stretch">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-forest-400 w-5 h-5" />
