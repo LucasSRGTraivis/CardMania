@@ -9,6 +9,7 @@ import { LogIn } from 'lucide-react'
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -20,6 +21,7 @@ export default function LoginPage() {
       console.log('[Auth][Username] Start', { mode: isSignUp ? 'signup' : 'login', username })
       setLoading(true)
       setError(null)
+      setInfo(null)
 
       if (isSignUp) {
         // On génère un email interne basé sur le username, uniquement pour Supabase Auth
@@ -87,6 +89,47 @@ export default function LoginPage() {
     }
   }
 
+  const handleForgotPassword = async () => {
+    const normalizedUsername = username.trim().toLowerCase()
+    if (!normalizedUsername) {
+      setError("Entre d'abord ton nom d'utilisateur pour réinitialiser ton mot de passe.")
+      setInfo(null)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      setInfo(null)
+
+      const { data: emailResult, error: emailError } = await supabase.rpc('get_email_for_username', {
+        p_username: normalizedUsername,
+      })
+
+      if (emailError) throw emailError
+
+      const resolvedEmail = typeof emailResult === 'string' ? emailResult : (emailResult as any)?.email
+
+      if (!resolvedEmail) {
+        setError("Nom d'utilisateur introuvable.")
+        return
+      }
+
+      const origin = window.location.origin
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(resolvedEmail, {
+        redirectTo: `${origin}/auth/reset-password`,
+      })
+
+      if (resetError) throw resetError
+
+      setInfo("Email de réinitialisation envoyé. Vérifie ta boîte mail.")
+    } catch (forgotError: any) {
+      setError(forgotError.message ?? "Impossible d'envoyer l'email de réinitialisation.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-cream-100 to-forest-50 px-4">
       <div className="max-w-md w-full space-y-8">
@@ -125,6 +168,11 @@ export default function LoginPage() {
             {error && (
               <div className={`${error.includes('Vérifiez') ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'} border px-4 py-3 rounded-lg`}>
                 {error}
+              </div>
+            )}
+            {info && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                {info}
               </div>
             )}
 
@@ -167,6 +215,19 @@ export default function LoginPage() {
                 {loading ? 'Chargement...' : (isSignUp ? "S'inscrire" : 'Se connecter')}
               </button>
             </form>
+
+            {!isSignUp && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="text-sm font-medium text-forest-700 hover:text-forest-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Mot de passe oublié ?
+                </button>
+              </div>
+            )}
 
             <div className="text-center">
               <button
