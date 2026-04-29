@@ -69,69 +69,93 @@ export default function DashboardClient({ user, initialCards }: DashboardClientP
     })
   }
 
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
   const loadCards = useCallback(async () => {
-      // Evite l'impression de "page figée" sur mobile quand le réseau est lent.
+      // Evite l'impression de "page figée" sur mobile quand le reseau est lent.
       setLoadError(null)
       setLoadingUser(true)
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      let supaUser = session?.user ?? null
-
-      if (!supaUser) {
+      try {
         const {
-          data: { user },
-        } = await withTimeout(
-          supabase.auth.getUser(),
-          8000,
-          "La session met trop de temps a se verifier. Reessaye."
-        )
-        supaUser = user
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        let supaUser = session?.user ?? null
+
+        if (!supaUser) {
+          const {
+            data: { user },
+          } = await withTimeout(
+            supabase.auth.getUser(),
+            8000,
+            "La session met trop de temps a se verifier. Reessaye."
+          )
+          supaUser = user
+        }
+
+        if (!supaUser) {
+          router.push('/auth/login')
+          return
+        }
+
+        setCurrentUser(supaUser)
+
+        const targetUserId =
+          friendIdParam && friendIdParam !== supaUser.id ? friendIdParam : supaUser.id
+
+        setViewingUserId(targetUserId)
+
+        let cardsData: Card[] | null = null
+        let cardsError: { message?: string; code?: string; details?: string; hint?: string } | null = null
+
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+          const { data, error } = await withTimeout(
+            supabase
+              .from('cards')
+              .select(CARD_LIST_SELECT)
+              .eq('user_id', targetUserId)
+              .order('created_at', { ascending: false }),
+            12000,
+            "Le chargement des cartes est trop long. Verifie ta connexion puis reessaye."
+          )
+
+          cardsData = (data as Card[] | null) ?? null
+          cardsError = error
+
+          if (!cardsError) break
+
+          // Apres un projet Supabase en pause, la 1ere requete peut rater/lentement repondre.
+          if (attempt < 2) {
+            await sleep(1200)
+          }
+        }
+
+        if (cardsError) {
+          console.error('[Dashboard] Error loading cards', {
+            message: cardsError.message,
+            code: cardsError.code,
+            details: cardsError.details,
+            hint: cardsError.hint,
+            targetUserId,
+          })
+          setLoadError(cardsError.message ?? "Impossible de charger tes cartes.")
+          return
+        }
+
+        if (cardsData) {
+          const normalizedCards = cardsData.map((card) => ({
+            ...card,
+            images: card.images ?? null,
+          }))
+          setCards(normalizedCards)
+          setFilteredCards(normalizedCards)
+        }
+      } catch (error: any) {
+        console.error('[Dashboard] Unexpected loadCards error', error)
+        setLoadError(error?.message ?? "Impossible de charger tes cartes.")
+      } finally {
+        setLoadingUser(false)
       }
-
-      if (!supaUser) {
-        router.push('/auth/login')
-        return
-      }
-
-      setCurrentUser(supaUser)
-
-      const targetUserId =
-        friendIdParam && friendIdParam !== supaUser.id ? friendIdParam : supaUser.id
-
-      setViewingUserId(targetUserId)
-
-      const { data: cardsData, error: cardsError } = await withTimeout(
-        supabase
-          .from('cards')
-          .select(CARD_LIST_SELECT)
-          .eq('user_id', targetUserId)
-          .order('created_at', { ascending: false }),
-        12000,
-        "Le chargement des cartes est trop long. Verifie ta connexion puis reessaye."
-      )
-
-      if (cardsError) {
-        console.error('[Dashboard] Error loading cards', {
-          message: cardsError.message,
-          code: cardsError.code,
-          details: cardsError.details,
-          hint: cardsError.hint,
-          targetUserId,
-        })
-        setLoadError(cardsError.message ?? "Impossible de charger tes cartes.")
-      } else if (cardsData) {
-        const normalizedCards = (cardsData as Card[]).map((card) => ({
-          ...card,
-          images: card.images ?? null,
-        }))
-        setCards(normalizedCards)
-        setFilteredCards(normalizedCards)
-      }
-
-      setLoadingUser(false)
     }, [friendIdParam, router])
 
   useEffect(() => {
